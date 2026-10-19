@@ -1,27 +1,75 @@
-Akuma Fit
+# Akuma Fit 🏋️‍♂️
 
-Una app con React + Vite y Supabase. Hecha para entrenadores personales.
+Aplicación moderna para entrenadores personales y atletas construida con **React 19, Vite 8, React Router 7 y Supabase**.
 
-## Puesta en marcha
+---
 
-1. `npm install`
-2. Copia `.env.example` a `.env.local` (en la raíz) y rellena las variables con los datos de tu proyecto Supabase (`.env.local` está en el repo con los valores vacíos):
-   ```
-   VITE_SUPABASE_URL=https://<project-id>.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key>
-   ```
-3. En una base de datos vacía, ejecuta en el SQL Editor de Supabase, por orden, los archivos de `src/migrations/`:
-   `001_types.sql`, `002_tables.sql`, `003_functions.sql`, `004_rls_policies.sql`, `005_storage.sql` y `006_constraints_indexes.sql`
-   (tipos, tablas, funciones, RLS/políticas y buckets de Storage).
-4. `npm run dev`
+## 🚀 Puesta en marcha
 
-## Nota para el siguiente desarrollador
+### 1. Clonar e instalar dependencias
+```bash
+git clone https://github.com/albertokalim/akuma-fit.git
+cd akuma-fit
+npm install
+```
 
-- **La app no está completa.** Algunas funciones necesitan ser revisadas y probadas antes de considerarlas estables.
-- **Hace falta hosting para desplegarla.** El proyecto es una SPA (Vite); para publicarla necesitarás un servicio que la hostee (Vercel, Netlify, Cloudflare Pages, etc.) con `npm run build` y las variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` configuradas. Además, un proyecto Supabase propio (el original será eliminado).
+### 2. Configurar variables de entorno
+Copia `.env.example` a `.env.local` en la raíz del proyecto:
+```bash
+cp .env.example .env.local
+```
+Rellena las variables con las credenciales de tu proyecto Supabase:
+```env
+VITE_SUPABASE_URL=https://<tu-project-id>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<tu-publishable-anon-key>
+```
 
-## Licencia
+### 3. Configuración de Base de Datos en Supabase
+En el **SQL Editor** de tu panel de Supabase, ejecuta por orden los scripts que se encuentran en `src/migrations/`:
+
+1. `001_types.sql` - Tipos enumerados (roles, adherencia, género).
+2. `002_tables.sql` - Esquema de tablas relacionales.
+3. `003_functions.sql` - Funciones PL/pgSQL y de cálculo.
+4. `004_rls_policies.sql` - Políticas de seguridad a nivel de fila (RLS).
+5. `005_storage.sql` - Creación de buckets privados para avatares, fotos y vídeos.
+6. `006_constraints_indexes.sql` - Claves foráneas con CASCADE, índices y restricciones.
+7. `007_seed.sql` - **(Recomendado)** Datos semilla con biblioteca base de ejercicios, alimentos con macros por 100g y etiquetas.
+8. `008_security_coaches.sql` - **(Recomendado)** Seguridad reforzada en fotos corporales y tabla `coach_has_client`.
+
+### 4. Crear tu cuenta de Entrenador (Coach)
+Al registrarte en la aplicación recibirás por defecto el rol de atleta (`client`). Para ascender tu cuenta a Entrenador, ve al **SQL Editor** de Supabase y ejecuta:
+```sql
+SELECT public.promote_to_coach('tu_email@ejemplo.com');
+```
+
+### 5. Iniciar en desarrollo
+```bash
+npm run dev
+```
+
+---
+
+## 🛠️ Comandos disponibles
+
+- `npm run dev`: Inicia el servidor de desarrollo Vite con hot-reload.
+- `npm run build`: Compila el bundle de producción en la carpeta `dist/`.
+- `npm run lint`: Ejecuta el análisis estático de código con ESLint.
+- `npm run test:run`: Ejecuta la suite de pruebas unitarias con Vitest.
+- `npm run preview`: Previsualiza el bundle compilado localmente.
+
+---
+
+## 📱 Características destacadas
+
+- **Gestión integral de clientes:** Vista del coach con búsqueda, estado de adherencia, asignación de rutinas y fichas de valoración.
+- **Modo entrenamiento en vivo:** Registro interactivo de repeticiones y peso, feedback de series y **temporizador de descanso sonoro y con vibración** integrado.
+- **Nutrición & Dietas:** Constructor visual de menús por comidas (slots), biblioteca de alimentos y recetas con cálculo automático de macronutrientes.
+- **Seguimiento & Check-Ins:** Gráficos evolutivos de peso, adherencia semanal, comparación fotográfica corporal y alertas de atención requerida.
+- **PWA & Mobile Ready:** Configurada con Web App Manifest y lista para instalar en pantalla de inicio.
+- **Despliegue SPA:** Incluye reglas de reescritura para **Vercel** (`vercel.json`) y **Netlify/Cloudflare** (`_redirects`).
+
+---
+
+## 📄 Licencia
 
 [MIT](LICENSE).
-
-Esta app también es un medio para experimentar con OpenCode y el uso de IA en el desarrollo. El código de la app está parcialmente escrito por mí, pero he usado los agentes de modo que sigan mis instrucciones para picar el código más pesado y para que me ayuden a tomar varias decisiones. He usado DeepSeek V4 Pro, Qwen 3.7, GLM 5.2 y Claude Sonnet para apoyarme en el desarrollo.

@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from 'react';
 import Spinner from '../components/primitives/Spinner/Spinner.jsx';
-import PlaceholderComponent from '../components/primitives/PlaceholderComponent/PlaceholderComponent.jsx';
 import { useAuth } from '../context/useAuth.js';
 
 const CoachDashboard = lazy(() => import('../views/Dashboard/CoachDashboard.jsx'));
@@ -18,6 +17,7 @@ const NewWeightLog = lazy(() => import('../views/Progress/NewWeightLog.jsx'));
 const ProgressBodyPhotos = lazy(() => import('../views/Progress/ProgressBodyPhotos.jsx'));
 const CoachCheckIns = lazy(() => import('../views/CoachCheckIns/CoachCheckIns.jsx'));
 const Reports = lazy(() => import('../views/Reports/Reports.jsx'));
+const Clients = lazy(() => import('../views/Clients/Clients.jsx'));
 const CreateRoutine = lazy(() => import('../views/CreateRoutine/CreateRoutine.jsx'));
 const Exercises = lazy(() => import('../views/Exercises/Exercises.jsx'));
 const ExerciseForm = lazy(() => import('../views/Exercises/ExerciseForm.jsx'));
@@ -75,7 +75,7 @@ export const SECTION_ROUTES = {
         { path: 'reportes', element: withSuspense(<Reports />) },
     ],
     clients: [
-        { path: 'clients', element: <PlaceholderComponent title="Clientes Component" /> },
+        { path: 'clients', element: withSuspense(<Clients />) },
     ],
     exercises: [
         { path: 'exercises', element: withSuspense(<Exercises />) },

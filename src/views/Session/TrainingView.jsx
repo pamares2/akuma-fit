@@ -7,6 +7,7 @@ import SessionActionFeedback from './SessionActionFeedback.jsx';
 import FeedbackScreen from './FeedbackScreen.jsx';
 import MobileTrainingView from './MobileTrainingView.jsx';
 import DesktopTrainingView from './DesktopTrainingView.jsx';
+import RestTimer from './RestTimer.jsx';
 
 /**
  * Vista de entrenamiento: orquesta el estado de la sesión y elige entre la
@@ -96,6 +97,8 @@ function TrainingView({ session, routine, fullSession, onFinished, onCancelled }
             ) : (
                 <DesktopTrainingView training={training} />
             )}
+
+            <RestTimer />
 
             <AbandonSessionModal
                 open={confirmAbandon}

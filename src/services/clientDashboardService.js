@@ -115,12 +115,11 @@ export const clientDashboardService = {
 
     async getNextEvent() {
         const profile = await getCurrentProfile();
-
         const today = new Date().toISOString().split('T')[0];
 
         const { data, error } = await supabase
             .from('calendar_event')
-            .select('title, dtstart, start_time, event_type')
+            .select('title, dtstart, start_time, event_type, freq')
             .eq('profile_id', profile.id)
             .eq('active', true)
             .gte('dtstart', today)
@@ -130,13 +129,27 @@ export const clientDashboardService = {
 
         if (error) throw new Error(error.message);
 
-        if (!data) return null;
+        if (data) {
+            return {
+                title: data.title,
+                date: data.dtstart,
+                time: data.start_time,
+                type: data.event_type,
+            };
+        }
+
+        // Si no hay un evento futuro puntual, sugerir el próximo check-in dominical
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 es domingo
+        const daysUntilSunday = (7 - dayOfWeek) % 7 || 7;
+        const nextSunday = new Date(now);
+        nextSunday.setDate(now.getDate() + daysUntilSunday);
 
         return {
-            title: data.title,
-            date: data.dtstart,
-            time: data.start_time,
-            type: data.event_type,
+            title: 'Check-in semanal',
+            date: nextSunday.toISOString().split('T')[0],
+            time: '20:00',
+            type: 'check_in',
         };
     },
 };
