@@ -148,9 +148,32 @@ export const exerciseService = {
             query = query.in('exercise_template_has_tag.tag', filters.tags);
         }
 
-        const { data, error } = await query;
+        let { data, error } = await query;
 
-        if (error) throw new Error(error.message);
+        // Fallback robusto si la consulta anidada con tags fallara
+        if (error) {
+            console.warn('Reintentando consulta directa sin tags:', error);
+            let fallbackQuery = supabase
+                .from('exercise_template')
+                .select('*')
+                .order('exercise_name');
+
+            if (filters.text) {
+                fallbackQuery = fallbackQuery.or(`exercise_name.ilike.%${filters.text}%,description.ilike.%${filters.text}%`);
+            }
+            if (filters.category) {
+                fallbackQuery = fallbackQuery.eq('category', filters.category);
+            }
+
+            const fallbackRes = await fallbackQuery;
+            if (!fallbackRes.error && fallbackRes.data) {
+                return fallbackRes.data.map(exercise => ({
+                    ...exercise,
+                    tags: [],
+                }));
+            }
+            throw new Error(error.message);
+        }
 
         return data?.map(exercise => ({
             ...exercise,
