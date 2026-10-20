@@ -1,27 +1,31 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth.js';
+import { useTheme } from '../../context/useTheme.js';
 import { translateSupabaseAuthError } from '../../utils/supabaseErrors.js';
-
-import {FcGoogle} from "react-icons/fc";
+import ThemeSelector from '../../components/complex/ThemeSelector/ThemeSelector.jsx';
+import { FcGoogle } from 'react-icons/fc';
 
 /** Expresión regular para validar el formato del email. */
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Pantalla de inicio de sesión con validación de campos y errores traducidos.
+ * Pantalla de inicio de sesión con personalización de tema anime.
  */
 function Login() {
     const { login } = useAuth();
+    const { currentThemeInfo } = useTheme();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({
         email: false,
         password: false,
         message: ''
     });
+
+    const ThemeIcon = currentThemeInfo.Icon;
 
     const validateFields = () => {
         if (!email || !password) {
@@ -80,8 +84,43 @@ function Login() {
 
     return (
         <div className="auth-page">
-            <div className="auth-container">
-                <h2>{'Iniciar Sesión'}</h2>
+            <div className="auth-container" style={{
+                boxShadow: 'var(--anime-aura-glow, var(--shadow-lg))',
+                border: '1px solid var(--color-primary-border)',
+                transition: 'all 0.3s ease'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                    <ThemeSelector compact={true} />
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                    <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: 'var(--color-primary-soft)',
+                        border: '1px solid var(--color-primary-border)',
+                        color: 'var(--color-primary)',
+                        fontSize: '1.8rem',
+                        marginBottom: '0.75rem'
+                    }}>
+                        <ThemeIcon />
+                    </div>
+                    <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.4rem', fontWeight: 800 }}>AKUMA FIT</h2>
+                    <span className="anime-badge">{currentThemeInfo.rank}</span>
+                    <p style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--color-text-secondary)',
+                        fontStyle: 'italic',
+                        marginTop: '0.5rem',
+                        marginBottom: 0
+                    }}>
+                        "{currentThemeInfo.quote}"
+                    </p>
+                </div>
 
                 <form onSubmit={handleLogin} className="auth-form">
                     {errors.message && <div className="error-message">{errors.message}</div>}
@@ -110,12 +149,12 @@ function Login() {
                     </div>
 
                     <div className="buttons-container">
-                        <button onClick={handleLogin} className="login-button">
-                            <span className="button-text">Entrar</span>
+                        <button onClick={handleLogin} className="login-button" disabled={loading}>
+                            <span className="button-text">{loading ? 'Entrando...' : 'Entrar'}</span>
                         </button>
                         <button onClick={handleGoogleLogin} className="google-button">
                             <span className="button-icon"><FcGoogle size={20} /></span>
-                            <span className="button-text">Iniciar sesión con Google</span>
+                            <span className="button-text">Google</span>
                         </button>
                     </div>
                 </form>

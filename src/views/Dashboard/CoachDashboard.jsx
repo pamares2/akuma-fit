@@ -4,6 +4,7 @@ import { FiUsers, FiCheckCircle, FiAlertTriangle, FiTrendingUp, FiTrendingDown, 
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
 import EventList from '../../components/complex/EventList/EventList.jsx';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
+import AnimeBanner from '../../components/complex/AnimeBanner/AnimeBanner.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 
 function CoachDashboard() {
@@ -70,8 +71,10 @@ function CoachDashboard() {
 
     return (
         <div className="dashboard-main">
+            <AnimeBanner />
+
             <div className="dashboard-title">
-                <h1>Dashboard</h1>
+                <h1>Panel de Control</h1>
             </div>
 
             <section className="stats-section">

@@ -4,6 +4,7 @@ import { FiActivity, FiCheckCircle, FiPlay, FiTrendingUp, FiClipboard, FiPlus } 
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
+import AnimeBanner from '../../components/complex/AnimeBanner/AnimeBanner.jsx';
 import { clientDashboardService } from '../../services/clientDashboardService.js';
 
 function ClientDashboard() {
@@ -72,8 +73,10 @@ function ClientDashboard() {
 
     return (
         <div className="dashboard-main">
+            <AnimeBanner />
+
             <div className="dashboard-title">
-                <h1>Mi Dashboard</h1>
+                <h1>Mi Panel</h1>
             </div>
 
             <section className="stats-section">
@@ -95,9 +98,9 @@ function ClientDashboard() {
                                 <Line
                                     type="monotone"
                                     dataKey="weight"
-                                    stroke="#6366f1"
-                                    strokeWidth={2}
-                                    dot={{ fill: '#6366f1', r: 3 }}
+                                    stroke="var(--color-primary)"
+                                    strokeWidth={3}
+                                    dot={{ fill: 'var(--color-primary)', r: 4 }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
