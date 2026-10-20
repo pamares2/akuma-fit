@@ -8,6 +8,12 @@ import useFormSubmission from '../../hooks/useFormSubmission.js';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 
 const EXERCISE_CATEGORIES = [
+    'Pecho',
+    'Espalda',
+    'Hombro',
+    'Pierna',
+    'Bíceps',
+    'Tríceps',
     'Fuerza',
     'Cardio',
     'Movilidad',
