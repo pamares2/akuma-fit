@@ -14,7 +14,7 @@ WHERE creator IS NULL;
 
 -- 3. Por si la tabla estuviera vacía, insertar los ejercicios asignados directamente al entrenador
 INSERT INTO public.exercise_template (exercise_name, description, comments, category, creator)
-SELECT v.name, v.desc, v.comm, v.cat, p.id
+SELECT v.ex_name, v.ex_desc, v.ex_comm, v.ex_cat, p.id
 FROM (SELECT id FROM public.profile WHERE role = 'coach' LIMIT 1) p,
 (VALUES
     -- Pecho
@@ -102,5 +102,5 @@ FROM (SELECT id FROM public.profile WHERE role = 'coach' LIMIT 1) p,
     ('Crunch Abdominal en Polea Alta', 'Crunch con resistencia progresiva arrodillado frente a la polea.', 'Flexionar la columna enrollando el torso hacia la pelvis.', 'Core'),
     ('Crunch en Máquina Abdominal', 'Trabajo guiado con selector de placas para hipertrofia abdominal.', 'Movimiento lento y contracción sostenida.', 'Core'),
     ('Vacío Abdominal (Stomach Vacuum)', 'Activación profunda del músculo transverso para cintura estrecha.', 'Expulsar todo el aire y meter el ombligo hacia la columna.', 'Core')
-) AS v(name, desc, comm, cat)
-WHERE NOT EXISTS (SELECT 1 FROM public.exercise_template et WHERE et.exercise_name = v.name);
+) AS v(ex_name, ex_desc, ex_comm, ex_cat)
+WHERE NOT EXISTS (SELECT 1 FROM public.exercise_template et WHERE et.exercise_name = v.ex_name);
