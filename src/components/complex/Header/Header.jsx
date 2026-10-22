@@ -6,8 +6,9 @@ import { useAuth } from '../../../context/useAuth.js';
 import { DEMO_CHAT_CLIENTS } from '../../../services/feedbackService.js';
 
 /**
- * Cabecera de la app con selector de tema anime, selector de vista en vivo
- * ("Ver como Entrenador / Cliente de prueba") y control de sesión.
+ * Cabecera accesible y responsive de la app con selector de tema anime,
+ * selector de vista en vivo ("Ver como Entrenador / Cliente de prueba")
+ * y control de sesión seguro.
  */
 function Header({ onLogout, onMenuToggle, menuOpen }) {
     const navigate = useNavigate();
@@ -33,17 +34,18 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
     const canSwitchDemoView = realUserRole === 'coach' || Boolean(impersonatedClientId);
 
     return (
-        <header className="header">
+        <header className="header" role="banner">
             <div className="header-left">
                 <button
                     className="menu-toggle-btn"
                     onClick={onMenuToggle}
-                    aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                    aria-label={menuOpen ? 'Cerrar menú lateral de navegación' : 'Abrir menú lateral de navegación'}
+                    aria-expanded={menuOpen}
                 >
                     <FiMenu size={24} />
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ThemeIcon size={24} style={{ color: 'var(--color-primary)' }} />
+                    <ThemeIcon size={24} style={{ color: 'var(--color-primary)' }} aria-hidden="true" />
                     <span style={{
                         fontWeight: 800,
                         fontSize: '1.15rem',
@@ -56,9 +58,9 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                 </div>
             </div>
 
-            <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {canSwitchDemoView && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                         {impersonatedClientId && (
                             <button
                                 type="button"
@@ -70,7 +72,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '0.35rem',
-                                    padding: '0.38rem 0.75rem',
+                                    padding: '0.35rem 0.65rem',
                                     borderRadius: '999px',
                                     background: 'var(--color-primary, #e63946)',
                                     color: '#fff',
@@ -78,10 +80,12 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                     fontSize: '0.78rem',
                                     fontWeight: 700,
                                     cursor: 'pointer',
+                                    minHeight: '36px',
                                 }}
                                 title="Salir de la vista de cliente y volver al panel de Entrenador"
+                                aria-label="Volver a la vista de Entrenador"
                             >
-                                <FiCornerUpLeft size={14} />
+                                <FiCornerUpLeft size={14} aria-hidden="true" />
                                 <span>Volver a Entrenador</span>
                             </button>
                         )}
@@ -89,17 +93,19 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                         <div style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.25rem 0.6rem',
+                            gap: '0.3rem',
+                            padding: '0.2rem 0.5rem',
                             borderRadius: '999px',
                             background: impersonatedClientId
                                 ? 'rgba(16, 185, 129, 0.16)'
                                 : 'rgba(255, 255, 255, 0.06)',
                             border: `1px solid ${impersonatedClientId ? 'rgba(16, 185, 129, 0.45)' : 'rgba(255, 255, 255, 0.14)'}`,
+                            minHeight: '36px',
                         }}>
                             <FiUserCheck
                                 size={14}
                                 style={{ color: impersonatedClientId ? '#10b981' : 'var(--color-primary, #e63946)' }}
+                                aria-hidden="true"
                             />
                             <select
                                 value={impersonatedClientId || ''}
@@ -113,10 +119,11 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                     fontWeight: 600,
                                     cursor: 'pointer',
                                     outline: 'none',
+                                    maxWidth: '180px',
                                 }}
                             >
                                 <option value="" style={{ background: '#181b20', color: '#fff' }}>
-                                    🏋️ Vista: Entrenador (Coach)
+                                    🏋️ Vista: Entrenador
                                 </option>
                                 {DEMO_CHAT_CLIENTS.map(client => (
                                     <option
@@ -124,7 +131,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                         value={client.id}
                                         style={{ background: '#181b20', color: '#fff' }}
                                     >
-                                        👤 Entrar como: {client.fullName} (Cliente)
+                                        👤 Cliente: {client.name}
                                     </option>
                                 ))}
                             </select>
@@ -133,8 +140,14 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                 )}
 
                 <ThemeSelector />
-                <button onClick={onLogout} className="logout-button" title="Cerrar sesión">
-                    <FiLogOut size={16} />
+                <button
+                    onClick={onLogout}
+                    className="logout-button"
+                    title="Cerrar sesión"
+                    aria-label="Cerrar sesión de Akuma Fit"
+                    style={{ minHeight: '36px' }}
+                >
+                    <FiLogOut size={16} aria-hidden="true" />
                     <span className="button-text">Salir</span>
                 </button>
             </div>
