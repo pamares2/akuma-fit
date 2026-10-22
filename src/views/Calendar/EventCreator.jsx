@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import useFormSubmission from '../../hooks/useFormSubmission.js';
 import { eventService } from '../../services/eventService.js';
 import { routineService } from '../../services/routineService.js';
+import { isDemoClientId } from '../../services/feedbackService.js';
 import { getCurrentProfile } from '../../utils/auth.js';
 import { WEEKDAYS, MONTH_NAMES, toISODate } from '../../utils/calendar.js';
 
@@ -35,8 +36,10 @@ const DEFAULT_FREQ_BY_TYPE = {
  */
 function EventCreator() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const initialClientId = searchParams.get('clientId') || '';
 
-    const [selectedClientId, setSelectedClientId] = useState('');
+    const [selectedClientId, setSelectedClientId] = useState(initialClientId);
     const [eventType, setEventType] = useState('training');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -50,11 +53,24 @@ function EventCreator() {
     const [startTime, setStartTime] = useState('');
     const [routineId, setRoutineId] = useState('');
 
-    const { data: clients } = useAsyncData(() => routineService.getClients(), []);
+    const { data: clients } = useAsyncData(
+        () => routineService.getClients().then((list) => {
+            if (list.length > 0) {
+                setSelectedClientId((prev) => prev || String(list[0].id));
+            }
+            return list;
+        }),
+        []
+    );
 
     const { data: routines, loading: loadingRoutines } = useAsyncData(
         eventType === 'training' && selectedClientId
-            ? () => routineService.getByClient(selectedClientId)
+            ? () => routineService.getByClient(selectedClientId).then((list) => {
+                if (list.length > 0) {
+                    setRoutineId((prev) => prev || String(list[0].id));
+                }
+                return list;
+            })
             : null,
         [eventType, selectedClientId]
     );
@@ -69,6 +85,11 @@ function EventCreator() {
         setRoutineId('');
     };
 
+    const handleClientChange = (value) => {
+        setSelectedClientId(value);
+        setRoutineId('');
+    };
+
     const onSubmit = async () => {
         if (!selectedClientId) throw new Error('Selecciona un cliente.');
         if (!title.trim()) throw new Error('El título es obligatorio.');
@@ -78,7 +99,7 @@ function EventCreator() {
         const profile = await getCurrentProfile();
 
         await eventService.create({
-            profileId: Number(selectedClientId),
+            profileId: isDemoClientId(selectedClientId) ? selectedClientId : Number(selectedClientId),
             createdBy: profile.id,
             eventType,
             title: title.trim(),
@@ -99,7 +120,7 @@ function EventCreator() {
         <div className="calendar-page">
             <div className="page-container">
                 <h1 className="page-title">Crear evento</h1>
-                <p className="page-description">Crea un evento para un cliente.</p>
+                <p className="page-description">Crea y asigna un evento o entrenamiento en el calendario de un cliente.</p>
 
                 <div className="form-section-card">
                     <div className="form-field">
@@ -108,7 +129,7 @@ function EventCreator() {
                             id="event-client"
                             className="form-field-input"
                             value={selectedClientId}
-                            onChange={(e) => setSelectedClientId(e.target.value)}
+                            onChange={(e) => handleClientChange(e.target.value)}
                         >
                             <option value="">Selecciona un cliente</option>
                             {(clients || []).map((client) => (

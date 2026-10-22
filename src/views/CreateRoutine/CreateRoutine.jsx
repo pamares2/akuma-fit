@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiPlus, FiTrash2, FiChevronDown, FiChevronUp, FiSearch, FiX, FiTag } from 'react-icons/fi';
+import { useState, useRef, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FiPlus, FiTrash2, FiChevronDown, FiChevronUp, FiSearch, FiX, FiTag, FiCheck, FiActivity } from 'react-icons/fi';
 import Button from '../../components/primitives/Button/Button.jsx';
 import useFormSubmission from '../../hooks/useFormSubmission.js';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
@@ -41,12 +41,16 @@ const SET_TYPES = [
  */
 function CreateRoutine() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const queryClientId = searchParams.get('clientId') || '';
+
     const idCounter = useRef(0);
     const [title, setTitle] = useState('');
     const [coachComment, setCoachComment] = useState('');
-    const [selectedClientId, setSelectedClientId] = useState('');
+    const [selectedClientId, setSelectedClientId] = useState(queryClientId);
     const [selectedExercises, setSelectedExercises] = useState([]);
     const [expandedExercises, setExpandedExercises] = useState({});
+    const [routinesReloadKey, setRoutinesReloadKey] = useState(0);
 
     const [showExercisePicker, setShowExercisePicker] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -55,8 +59,20 @@ function CreateRoutine() {
     const [selectedTags, setSelectedTags] = useState([]);
     const [pickerTrigger, setPickerTrigger] = useState(0);
 
-    const loadClients = async () => routineService.getClients();
-    const { data: clients } = useAsyncData(loadClients, []);
+    const { data: clients } = useAsyncData(
+        () => routineService.getClients().then((list) => {
+            if (!selectedClientId && list && list.length > 0) {
+                setSelectedClientId(String(list[0].id));
+            }
+            return list;
+        }),
+        []
+    );
+
+    const { data: clientRoutines } = useAsyncData(
+        selectedClientId ? () => routineService.getByClient(selectedClientId) : null,
+        [selectedClientId, routinesReloadKey]
+    );
 
     const loadTags = async () => tagService.getAll();
     const { data: allTags } = useAsyncData(showExercisePicker ? loadTags : null, [showExercisePicker]);
@@ -79,9 +95,16 @@ function CreateRoutine() {
         handleSubmit,
     } = useFormSubmission({
         onSuccess: () => {
-            setTimeout(() => navigate('/app/plans'), 1200);
+            setTitle('');
+            setCoachComment('');
+            setSelectedExercises([]);
+            setRoutinesReloadKey(k => k + 1);
         },
     });
+
+    const selectedClientObj = useMemo(() => {
+        return (clients || []).find(c => String(c.id) === String(selectedClientId)) || null;
+    }, [clients, selectedClientId]);
 
     const openExercisePicker = () => {
         setShowExercisePicker(true);
@@ -181,6 +204,9 @@ function CreateRoutine() {
             clientId: selectedClientId || null,
             exercises: selectedExercises.map(e => ({
                 id: e.id,
+                exercise_name: e.exercise_name,
+                category: e.category,
+                description: e.description,
                 sets: e.sets.map(s => ({
                     order: s.order,
                     reps: s.reps,
@@ -199,16 +225,71 @@ function CreateRoutine() {
     return (
         <div className="routine-page">
             <div className="page-container">
-                <h1 className="page-title">Crear Rutina</h1>
+                <h1 className="page-title">Rutinas y Asignación</h1>
                 <p className="page-description">
-                    Diseña una rutina de entrenamiento y asígnala a un cliente.
+                    Supervisa las rutinas asignadas y diseña nuevas sesiones de entrenamiento para tus atletas.
                 </p>
 
+                {/* Rutinas actualmente asignadas al cliente seleccionado */}
+                {selectedClientId && selectedClientObj && (
+                    <div style={{
+                        background: 'var(--color-bg-secondary, #181b20)',
+                        border: '1px solid var(--color-border, #282c34)',
+                        borderRadius: '12px',
+                        padding: '1.25rem',
+                        marginBottom: '1.5rem',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <FiActivity style={{ color: 'var(--color-primary, #e63946)' }} />
+                                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600 }}>
+                                    Rutinas asignadas a {selectedClientObj.name} {selectedClientObj.surname || ''}
+                                </h3>
+                            </div>
+                            <span style={{ fontSize: '0.8rem', color: '#9aa0a6' }}>
+                                {(clientRoutines || []).length} rutina(s) activa(s)
+                            </span>
+                        </div>
+
+                        {!clientRoutines || clientRoutines.length === 0 ? (
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#9aa0a6' }}>
+                                Este atleta aún no tiene ninguna rutina asignada. Rellena el formulario de abajo para asignarle una.
+                            </p>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                                {clientRoutines.map((r) => (
+                                    <div
+                                        key={r.id}
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.03)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '8px',
+                                            padding: '0.75rem 1rem',
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#ffffff', marginBottom: '0.25rem' }}>
+                                            {r.title}
+                                        </div>
+                                        <div style={{ fontSize: '0.78rem', color: '#9aa0a6' }}>
+                                            {(r.exercises || []).length} ejercicios · {(r.exercises || []).reduce((acc, e) => acc + (e.sets?.length || 0), 0)} series
+                                        </div>
+                                        {r.coach_comment && (
+                                            <p style={{ fontSize: '0.75rem', color: '#cbd5e1', margin: '0.35rem 0 0', fontStyle: 'italic' }}>
+                                                "{r.coach_comment}"
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="form-section-card">
-                    <h2 className="section-subtitle">Información General</h2>
+                    <h2 className="section-subtitle">Crear y Asignar Nueva Rutina</h2>
 
                     <div className="form-field">
-                        <label htmlFor="client-select">Cliente</label>
+                        <label htmlFor="client-select">Asignar a Cliente *</label>
                         <select
                             id="client-select"
                             value={selectedClientId}
@@ -251,7 +332,7 @@ function CreateRoutine() {
 
                 <div className="exercises-section">
                     <div className="exercises-header">
-                        <h2 className="section-subtitle">Ejercicios</h2>
+                        <h2 className="section-subtitle">Ejercicios de la Rutina</h2>
                         <button onClick={openExercisePicker} className="btn-outline">
                             <FiPlus size={16} />
                             <span>Agregar Ejercicio</span>
@@ -374,22 +455,27 @@ function CreateRoutine() {
 
                 <div className="form-footer">
                     {submitError && <div className="error-message">{submitError}</div>}
-                    {submitSuccess && <div className="success-message">¡Rutina creada correctamente!</div>}
+                    {submitSuccess && (
+                        <div className="success-message" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <FiCheck />
+                            <span>¡Rutina creada y asignada correctamente! Ya aparece arriba en la lista de rutinas del cliente.</span>
+                        </div>
+                    )}
 
                     <div className="form-buttons">
                         <button
-                            onClick={() => navigate('/app/plans')}
+                            onClick={() => navigate('/app/clients')}
                             disabled={submitting}
                             className="btn-secondary"
                         >
-                            Cancelar
+                            Ver Cartera de Clientes
                         </button>
                         <button
                             onClick={onSubmitClick}
                             disabled={submitting || !isFormValid}
                             className="btn-primary"
                         >
-                            {submitting ? 'Creando...' : 'Crear Rutina'}
+                            {submitting ? 'Creando y asignando...' : 'Crear y Asignar Rutina'}
                         </button>
                     </div>
                 </div>

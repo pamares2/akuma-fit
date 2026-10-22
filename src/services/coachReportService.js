@@ -4,6 +4,7 @@ import {
     isDemoClientId,
     getDemoClientById,
 } from './feedbackService.js';
+import { getDemoClientPhotos } from '../data/demoClientPlans.js';
 
 /**
  * Servicio de acceso a datos para los reportes del coach (clientes, medidas
@@ -11,7 +12,8 @@ import {
  */
 export const coachReportService = {
     /**
-     * Obtiene la lista de clientes (incluyendo los 2 clientes de prueba).
+     * Obtiene la lista de clientes (incluyendo los 2 clientes de prueba en primer lugar
+     * para mostrar siempre datos completos al abrir Reportes).
      *
      * @returns {Promise<Array>} Lista de clientes.
      */
@@ -39,7 +41,7 @@ export const coachReportService = {
             isDemo: true,
         }));
 
-        return [...realClients, ...demoClients];
+        return [...demoClients, ...realClients];
     },
 
     /**
@@ -73,7 +75,7 @@ export const coachReportService = {
      */
     async getPhotos(profileId) {
         if (isDemoClientId(profileId)) {
-            return [];
+            return getDemoClientPhotos(profileId);
         }
 
         const { data, error } = await supabase

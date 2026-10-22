@@ -1,6 +1,11 @@
 import { supabase } from '../supabaseClient.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId } from './feedbackService.js';
-import { buildDefaultDemoRoutines } from '../data/demoClientPlans.js';
+import {
+    buildDefaultDemoRoutines,
+    saveCustomDemoRoutine,
+    removeCustomDemoRoutine,
+    getDemoRoutineById,
+} from '../data/demoClientPlans.js';
 
 const ROUTINE_WITH_EXERCISES_SELECT = `
     *,
@@ -64,7 +69,7 @@ function mapRoutineExercises(routine) {
  */
 export const routineService = {
     /**
-     * Obtiene la lista de clientes.
+     * Obtiene la lista de clientes (incluyendo los 2 clientes de prueba en primer lugar).
      *
      * @returns {Promise<Array>} Lista de clientes.
      */
@@ -88,7 +93,7 @@ export const routineService = {
             isDemo: true,
         }));
 
-        return [...realClients, ...demoClients];
+        return [...demoClients, ...realClients];
     },
 
     /**
@@ -98,6 +103,10 @@ export const routineService = {
      * @returns {Promise<Object>} Rutina creada.
      */
     async create(routineData) {
+        if (routineData.clientId && isDemoClientId(routineData.clientId)) {
+            return saveCustomDemoRoutine(routineData.clientId, routineData);
+        }
+
         const { data: routine, error: routineError } = await supabase
             .from('routine')
             .insert({
@@ -172,6 +181,13 @@ export const routineService = {
     },
 
     /**
+     * Elimina una rutina personalizada de un cliente de prueba.
+     */
+    async removeDemoRoutine(clientId, routineId) {
+        removeCustomDemoRoutine(clientId, routineId);
+    },
+
+    /**
      * Obtiene las rutinas asignadas a un cliente, con ejercicios y series.
      *
      * @param {number|string} clientId - Id del perfil del cliente.
@@ -196,10 +212,14 @@ export const routineService = {
     /**
      * Obtiene una rutina por id con ejercicios y series.
      *
-     * @param {number} routineId - Id de la rutina.
+     * @param {number|string} routineId - Id de la rutina.
      * @returns {Promise<Object|null>} Rutina o `null` si no existe.
      */
     async getById(routineId) {
+        if (String(routineId).startsWith('demo-routine-')) {
+            return getDemoRoutineById(routineId);
+        }
+
         const { data: routine, error } = await supabase
             .from('routine')
             .select(ROUTINE_WITH_EXERCISES_SELECT)

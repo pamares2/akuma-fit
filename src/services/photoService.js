@@ -1,4 +1,6 @@
 import { supabase } from '../supabaseClient.js';
+import { isDemoClientId } from './feedbackService.js';
+import { getDemoClientPhotos } from '../data/demoClientPlans.js';
 
 const BUCKET_NAME = 'body-photos';
 
@@ -10,7 +12,7 @@ export const photoService = {
     /**
      * Sube una foto y crea su registro, devolviendo la fila creada.
      *
-     * @param {number} profileId - Id del perfil.
+     * @param {number|string} profileId - Id del perfil.
      * @param {string} date - Fecha de la foto (YYYY-MM-DD).
      * @param {string} position - Posición de la foto.
      * @param {File} file - Archivo de imagen.
@@ -47,10 +49,14 @@ export const photoService = {
     /**
      * Obtiene todas las fotos de un perfil, ordenadas por fecha descendente.
      *
-     * @param {number} profileId - Id del perfil.
+     * @param {number|string} profileId - Id del perfil.
      * @returns {Promise<Array>} Lista de fotos.
      */
     async getByProfile(profileId) {
+        if (isDemoClientId(profileId)) {
+            return getDemoClientPhotos(profileId);
+        }
+
         const { data, error } = await supabase
             .from('body_photo')
             .select('*')
@@ -64,11 +70,15 @@ export const photoService = {
     /**
      * Obtiene las fotos de un perfil tomadas en una fecha concreta.
      *
-     * @param {number} profileId - Id del perfil.
+     * @param {number|string} profileId - Id del perfil.
      * @param {string} date - Fecha (YYYY-MM-DD).
      * @returns {Promise<Array>} Lista de fotos.
      */
     async getByDate(profileId, date) {
+        if (isDemoClientId(profileId)) {
+            return getDemoClientPhotos(profileId).filter(p => p.taken_at === date);
+        }
+
         const { data, error } = await supabase
             .from('body_photo')
             .select('*')
@@ -82,9 +92,11 @@ export const photoService = {
     /**
      * Elimina una foto: borra el archivo del bucket y su registro.
      *
-     * @param {number} photoId - Id de la foto.
+     * @param {number|string} photoId - Id de la foto.
      */
     async delete(photoId) {
+        if (String(photoId).startsWith('demo-photo-')) return;
+
         const { data: photo, error: fetchError } = await supabase
             .from('body_photo')
             .select('storage_path')
@@ -114,6 +126,10 @@ export const photoService = {
      * @returns {Promise<string>} URL firmada.
      */
     async getSignedUrl(storagePath) {
+        if (storagePath && (storagePath.startsWith('data:') || storagePath.startsWith('http'))) {
+            return storagePath;
+        }
+
         const { data, error } = await supabase.storage
             .from(BUCKET_NAME)
             .createSignedUrl(storagePath, 3600);
@@ -132,15 +148,31 @@ export const photoService = {
     async getSignedUrls(storagePaths) {
         if (!storagePaths || storagePaths.length === 0) return {};
 
+        const directMap = {};
+        const bucketPaths = [];
+
+        for (const path of storagePaths) {
+            if (!path) continue;
+            if (path.startsWith('data:') || path.startsWith('http')) {
+                directMap[path] = path;
+            } else {
+                bucketPaths.push(path);
+            }
+        }
+
+        if (bucketPaths.length === 0) {
+            return directMap;
+        }
+
         const { data, error } = await supabase.storage
             .from(BUCKET_NAME)
-            .createSignedUrls(storagePaths, 3600);
+            .createSignedUrls(bucketPaths, 3600);
 
         if (error) throw new Error(error.message);
 
         return (data || []).reduce((acc, item) => {
             acc[item.path] = item.error ? null : item.signedUrl;
             return acc;
-        }, {});
+        }, { ...directMap });
     }
 };

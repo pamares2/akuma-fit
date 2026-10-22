@@ -1,5 +1,16 @@
 import { supabase } from '../supabaseClient.js';
 import { buildCompletions, fromISODate } from '../utils/calendar.js';
+import { isDemoClientId, getDemoClientById } from './feedbackService.js';
+import {
+    isDemoEventId,
+    getDemoCalendarData,
+    createDemoCalendarEvent,
+    updateDemoCalendarEvent,
+    removeDemoCalendarEvent,
+    cancelDemoCalendarOccurrence,
+    modifyDemoCalendarOccurrence,
+    getDemoClientPhotos,
+} from '../data/demoClientPlans.js';
 
 /**
  * Servicio de acceso a datos del módulo de eventos/calendario.
@@ -61,10 +72,14 @@ export const eventService = {
     /**
      * Devuelve los maestros activos de un cliente y sus excepciones.
      *
-     * @param {number} profileId - Id del perfil del cliente.
+     * @param {number|string} profileId - Id del perfil del cliente.
      * @returns {Promise<{events: Array<Object>, exceptions: Array<Object>}>}
      */
     async getByClient(profileId) {
+        if (isDemoClientId(profileId)) {
+            return getDemoCalendarData(profileId);
+        }
+
         const { data: events, error } = await supabase
             .from('calendar_event')
             .select(EVENT_SELECT)
@@ -95,11 +110,19 @@ export const eventService = {
      * Devuelve el estado "hecho" de las tareas de un cliente en un rango de
      * fechas, agrupado por semana/mes/rutina (ver `buildCompletions`).
      *
-     * @param {number} profileId - Id del perfil del cliente.
+     * @param {number|string} profileId - Id del perfil del cliente.
      * @param {{from: string, to: string}} range - Rango ISO a consultar.
      * @returns {Promise<Object>} Resultado de `buildCompletions`.
      */
     async getCompletions(profileId, { from, to }) {
+        if (isDemoClientId(profileId)) {
+            const demo = getDemoClientById(profileId);
+            const measurements = demo?.measurements || [];
+            const checkIns = demo?.checkIns || [];
+            const photos = getDemoClientPhotos(profileId);
+            return buildCompletions({ measurements, checkIns, photos, sessions: [] });
+        }
+
         const fromDate = fromISODate(from);
         const toDate = fromISODate(to);
         toDate.setHours(23, 59, 59, 999);
@@ -154,6 +177,10 @@ export const eventService = {
      * @returns {Promise<Object>} Fila creada.
      */
     async create(data) {
+        if (isDemoClientId(data.profileId)) {
+            return createDemoCalendarEvent(data);
+        }
+
         const { data: created, error } = await supabase
             .from('calendar_event')
             .insert(buildMasterPayload(data))
@@ -172,6 +199,11 @@ export const eventService = {
      * @param {Object} patch - Campos a actualizar (camelCase).
      */
     async update(id, patch) {
+        if (isDemoEventId(id)) {
+            updateDemoCalendarEvent(id, patch);
+            return;
+        }
+
         const payload = {};
         Object.entries(patch).forEach(([key, value]) => {
             if (MASTER_FIELD_MAP[key] && value !== undefined) {
@@ -193,6 +225,11 @@ export const eventService = {
      * @param {number} id - Id del maestro.
      */
     async remove(id) {
+        if (isDemoEventId(id)) {
+            removeDemoCalendarEvent(id);
+            return;
+        }
+
         const { error } = await supabase
             .from('calendar_event')
             .update({ active: false })
@@ -208,6 +245,11 @@ export const eventService = {
      * @param {string} date - Fecha ISO de la ocurrencia.
      */
     async cancelOccurrence(eventId, date) {
+        if (isDemoEventId(eventId)) {
+            cancelDemoCalendarOccurrence(eventId, date);
+            return;
+        }
+
         const { error } = await supabase
             .from('calendar_event_exception')
             .upsert(
@@ -227,6 +269,11 @@ export const eventService = {
      *   `startTime`, `newDate`).
      */
     async modifyOccurrence(eventId, date, fields) {
+        if (isDemoEventId(eventId)) {
+            modifyDemoCalendarOccurrence(eventId, date, fields);
+            return;
+        }
+
         const { error } = await supabase
             .from('calendar_event_exception')
             .upsert(
@@ -257,6 +304,27 @@ export const eventService = {
      * @returns {Promise<number>} Id del nuevo maestro.
      */
     async splitSeries(original, fromDate, changes) {
+        if (isDemoEventId(original.id)) {
+            updateDemoCalendarEvent(original.id, { until: fromDate });
+            const created = createDemoCalendarEvent({
+                profileId: original.profile_id,
+                eventType: original.event_type,
+                title: changes.title ?? original.title,
+                description: changes.description ?? original.description,
+                startTime: changes.startTime !== undefined ? changes.startTime : original.start_time,
+                freq: changes.freq ?? original.freq,
+                interval: changes.interval ?? original.recurrence_interval ?? 1,
+                byday: changes.byday ?? original.byday,
+                bymonthday: changes.bymonthday ?? original.bymonthday,
+                bymonth: changes.bymonth ?? original.bymonth,
+                count: changes.count ?? original.count,
+                until: changes.until ?? original.until,
+                dtstart: fromDate,
+                routineId: changes.routineId ?? original.routine_id,
+            });
+            return created.id;
+        }
+
         const { data, error } = await supabase
             .rpc('split_calendar_event', {
                 p_event_id: original.id,
