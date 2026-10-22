@@ -1,7 +1,8 @@
 import { supabase } from '../supabaseClient.js';
+import { feedbackService } from './feedbackService.js';
 
 /**
- * Servicio de acceso a datos para la vista de check-ins del coach.
+ * Servicio de acceso a datos para la vista de check-ins y feedback del coach.
  */
 export const coachCheckInService = {
     /**
@@ -21,7 +22,8 @@ export const coachCheckInService = {
     },
 
     /**
-     * Obtiene los check-ins de un cliente.
+     * Obtiene los check-ins de un cliente enriquecidos con el feedback del entrenador
+     * y las respuestas del cliente.
      *
      * @param {number} clientProfileId - Id del perfil del cliente.
      * @returns {Promise<Array>} Lista de check-ins del cliente.
@@ -34,6 +36,19 @@ export const coachCheckInService = {
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(error.message);
-        return data || [];
+
+        return feedbackService.enrichCheckIns(clientProfileId, data || []);
+    },
+
+    /**
+     * Guarda el feedback del entrenador en un check-in concreto del cliente.
+     *
+     * @param {number} clientProfileId - Id del perfil del cliente.
+     * @param {number} checkInId - Id del check-in.
+     * @param {string} feedbackText - Texto del feedback.
+     * @returns {Promise<Object>} Feedback guardado.
+     */
+    async saveCheckInFeedback(clientProfileId, checkInId, feedbackText) {
+        return feedbackService.saveCoachCheckInFeedback(clientProfileId, checkInId, feedbackText);
     },
 };

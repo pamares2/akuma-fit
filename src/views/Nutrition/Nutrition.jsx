@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiBookOpen, FiClock } from 'react-icons/fi';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { mealPlanService } from '../../services/mealPlanService.js';
 import { useAuth } from '../../context/useAuth.js';
@@ -74,6 +74,7 @@ function Nutrition() {
     const { profileId } = useAuth();
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [expandedDayId, setExpandedDayId] = useState(null);
+    const [expandedRecipes, setExpandedRecipes] = useState({});
 
     const { data: plans, loading, error } = useAsyncData(
         profileId ? () => mealPlanService.getByClient(profileId) : null,
@@ -88,6 +89,10 @@ function Nutrition() {
 
     const handleToggleDay = (dayId) => {
         setExpandedDayId(prev => (prev === dayId ? null : dayId));
+    };
+
+    const toggleRecipeDetails = (itemId) => {
+        setExpandedRecipes(prev => ({ ...prev, [itemId]: !prev[itemId] }));
     };
 
     if (loading) {
@@ -163,20 +168,93 @@ function Nutrition() {
                                                             </span>
                                                         </div>
 
-                                                        {slot.items.map(item => (
-                                                            <div key={item.id} className="nutrition-item">
-                                                                <div className="nutrition-item-info">
-                                                                    <span className="nutrition-item-name">{itemName(item)}</span>
-                                                                    <span className="nutrition-item-quantity">
-                                                                        {itemQuantityLabel(item)}
-                                                                        {item.notes ? ` · ${item.notes}` : ''}
-                                                                    </span>
+                                                        {slot.items.map(item => {
+                                                            const isRecipe = Boolean(item.recipe);
+                                                            const recipeOpen = Boolean(expandedRecipes[item.id]);
+                                                            const recipeIngredients = item.recipe?.ingredients || item.recipe?.recipe_food || [];
+                                                            const factor = (item.servings && item.servings > 0 ? item.servings : 1)
+                                                                / (item.recipe?.servings && item.recipe.servings > 0 ? item.recipe.servings : 1);
+
+                                                            return (
+                                                                <div key={item.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <div className="nutrition-item">
+                                                                        <div className="nutrition-item-info">
+                                                                            <span className="nutrition-item-name">{itemName(item)}</span>
+                                                                            <span className="nutrition-item-quantity">
+                                                                                {itemQuantityLabel(item)}
+                                                                                {item.notes ? ` · ${item.notes}` : ''}
+                                                                            </span>
+                                                                            {isRecipe && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => toggleRecipeDetails(item.id)}
+                                                                                    style={{
+                                                                                        marginTop: '0.35rem',
+                                                                                        background: 'transparent',
+                                                                                        border: 'none',
+                                                                                        color: 'var(--color-primary, #e63946)',
+                                                                                        fontSize: '0.8rem',
+                                                                                        cursor: 'pointer',
+                                                                                        padding: 0,
+                                                                                        display: 'inline-flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '0.3rem',
+                                                                                        fontWeight: 600,
+                                                                                    }}
+                                                                                >
+                                                                                    <FiBookOpen size={13} />
+                                                                                    {recipeOpen ? 'Ocultar receta' : 'Ver ingredientes y preparación'}
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="nutrition-item-macros">
+                                                                            {formatMacros(itemMacros(item))}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {isRecipe && recipeOpen && (
+                                                                        <div style={{
+                                                                            margin: '0.25rem 0 0.75rem 0.75rem',
+                                                                            padding: '0.85rem 1rem',
+                                                                            borderRadius: '8px',
+                                                                            background: 'rgba(255,255,255,0.03)',
+                                                                            borderLeft: '3px solid var(--color-primary, #e63946)',
+                                                                            fontSize: '0.85rem',
+                                                                            display: 'flex',
+                                                                            flexDirection: 'column',
+                                                                            gap: '0.6rem',
+                                                                        }}>
+                                                                            {item.recipe.preparation_time && (
+                                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-text-secondary, #9aa0a6)' }}>
+                                                                                    <FiClock size={13} /> Tiempo de preparación: {item.recipe.preparation_time} min
+                                                                                </span>
+                                                                            )}
+                                                                            {recipeIngredients.length > 0 && (
+                                                                                <div>
+                                                                                    <strong style={{ display: 'block', marginBottom: '0.3rem' }}>Ingredientes:</strong>
+                                                                                    <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                                                                                        {recipeIngredients.map((ing, idx) => (
+                                                                                            <li key={ing.id || idx}>
+                                                                                                {ing.food?.name}: <strong>{Math.round((ing.quantity_g || 0) * factor)} g</strong>
+                                                                                                {ing.notes ? ` (${ing.notes})` : ''}
+                                                                                            </li>
+                                                                                        ))}
+                                                                                    </ul>
+                                                                                </div>
+                                                                            )}
+                                                                            {item.recipe.instructions && (
+                                                                                <div>
+                                                                                    <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Elaboración:</strong>
+                                                                                    <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5, color: 'var(--color-text-secondary, #cbd5e1)' }}>
+                                                                                        {item.recipe.instructions}
+                                                                                    </p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                                <span className="nutrition-item-macros">
-                                                                    {formatMacros(itemMacros(item))}
-                                                                </span>
-                                                            </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </div>
                                                 ))
                                             )}

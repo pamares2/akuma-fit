@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
+import { feedbackService } from './feedbackService.js';
 
 export const clientDashboardService = {
     async getWeightData() {
@@ -151,5 +152,13 @@ export const clientDashboardService = {
             time: '20:00',
             type: 'check_in',
         };
+    },
+
+    async getLatestCoachFeedback() {
+        const profile = await getCurrentProfile();
+        const { messages } = await feedbackService.getFeedbackForClient(profile.id);
+        const coachMessages = (messages || []).filter(m => m.authorRole === 'coach');
+        if (coachMessages.length === 0) return null;
+        return coachMessages[coachMessages.length - 1];
     },
 };

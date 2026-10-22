@@ -9,10 +9,12 @@ import {
     FiTrendingUp,
     FiFileText,
     FiX,
-    FiClipboard
+    FiClipboard,
+    FiMessageSquare
 } from 'react-icons/fi';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
+import FeedbackThread from '../../components/complex/FeedbackThread/FeedbackThread.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { clientManagementService } from '../../services/clientManagementService.js';
 
@@ -22,6 +24,7 @@ export default function Clients() {
     const [selectedAssessmentClient, setSelectedAssessmentClient] = useState(null);
     const [assessmentModalData, setAssessmentModalData] = useState(null);
     const [loadingAssessment, setLoadingAssessment] = useState(false);
+    const [selectedFeedbackClient, setSelectedFeedbackClient] = useState(null);
 
     const { data: clients, loading, error, reload } = useAsyncData(
         () => clientManagementService.getAllClients(),
@@ -96,7 +99,7 @@ export default function Clients() {
                 <div>
                     <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Gestión de Clientes</h1>
                     <p style={{ color: 'var(--color-text-secondary, #9aa0a6)', margin: '0.25rem 0 0' }}>
-                        Supervisa el progreso, las valoraciones y la asignación de planes de tus atletas.
+                        Supervisa el progreso, el feedback, las valoraciones y la asignación de planes de tus atletas.
                     </p>
                 </div>
                 <Link to="/app/plans" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
@@ -313,6 +316,27 @@ export default function Clients() {
                                         </button>
                                     )}
 
+                                    <button
+                                        onClick={() => setSelectedFeedbackClient(client)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.45rem',
+                                            fontSize: '0.8rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(230, 57, 70, 0.45)',
+                                            background: 'rgba(230, 57, 70, 0.12)',
+                                            color: '#ffffff',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.25rem',
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        <FiMessageSquare /> Feedback
+                                    </button>
+
                                     <Link
                                         to="/app/client-checkins"
                                         style={{
@@ -358,6 +382,50 @@ export default function Clients() {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Modal de Feedback Directo Entrenador <-> Cliente */}
+            {selectedFeedbackClient && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '1rem',
+                    }}
+                    onClick={() => setSelectedFeedbackClient(null)}
+                >
+                    <div
+                        style={{
+                            maxWidth: '680px',
+                            width: '100%',
+                            position: 'relative',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <FeedbackThread
+                            clientProfileId={selectedFeedbackClient.id}
+                            clientName={selectedFeedbackClient.fullName}
+                            viewerRole="coach"
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                            <button
+                                onClick={() => setSelectedFeedbackClient(null)}
+                                className="btn-secondary"
+                                style={{ padding: '0.5rem 1.25rem' }}
+                            >
+                                Cerrar ventana
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

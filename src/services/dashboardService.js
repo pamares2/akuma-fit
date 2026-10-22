@@ -240,6 +240,8 @@ export const dashboardService = {
             .select(`
                 id,
                 started_at,
+                feeling,
+                notes,
                 routine:routine_id (
                     title
                 ),
@@ -254,12 +256,18 @@ export const dashboardService = {
 
         if (error) throw new Error(error.message);
 
-        return (data || []).map(session => ({
-            text: `${session.profile.name} ${session.profile.surname || ''} - ${session.routine?.title || 'Sesión'}`.trim(),
-            time: new Date(session.started_at).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-            }),
-        }));
+        return (data || []).map(session => {
+            const clientName = `${session.profile?.name || ''} ${session.profile?.surname || ''}`.trim();
+            const routineTitle = session.routine?.title || 'Sesión';
+            const feelingLabel = session.feeling ? ` · Sensación: ${session.feeling}` : '';
+            const notesLabel = session.notes ? ` ("${session.notes}")` : '';
+            return {
+                text: `${clientName} - ${routineTitle}${feelingLabel}${notesLabel}`,
+                time: new Date(session.started_at).toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                }),
+            };
+        });
     },
 };

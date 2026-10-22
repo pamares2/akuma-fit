@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { normalizeNumericFields } from '../utils/data.js';
+import { feedbackService } from './feedbackService.js';
 
 /**
  * Campos numéricos del check-in que se normalizan antes de insertar.
@@ -12,7 +13,8 @@ const NUMERIC_FIELDS = ['hunger_level', 'rest_quality', 'gym_performance', 'ener
  */
 export const checkInService = {
     /**
-     * Obtiene los check-ins del perfil actual, ordenados por fecha descendente.
+     * Obtiene los check-ins del perfil actual enriquecidos con el feedback
+     * del entrenador, ordenados por fecha descendente.
      *
      * @returns {Promise<Array>} Lista de check-ins.
      */
@@ -26,7 +28,7 @@ export const checkInService = {
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(error.message);
-        return data || [];
+        return feedbackService.enrichCheckIns(profile.id, data || []);
     },
 
     /**
@@ -43,5 +45,38 @@ export const checkInService = {
 
         const { error } = await supabase.from('check_in').insert(payload);
         if (error) throw new Error(error.message);
+    },
+
+    /**
+     * Obtiene el historial completo de mensajes de feedback entre el cliente actual y su entrenador.
+     *
+     * @returns {Promise<Array>} Lista de mensajes de feedback.
+     */
+    async getFeedbackMessages() {
+        const profile = await getCurrentProfile();
+        const { messages } = await feedbackService.getFeedbackForClient(profile.id);
+        return messages;
+    },
+
+    /**
+     * Envía un mensaje o duda directa del cliente a su entrenador.
+     *
+     * @param {string} text - Mensaje del cliente.
+     * @returns {Promise<Object>} Mensaje enviado.
+     */
+    async sendFeedbackToCoach(text) {
+        const profile = await getCurrentProfile();
+        return feedbackService.sendMessage(profile.id, text);
+    },
+
+    /**
+     * Envía una respuesta del cliente al feedback de un check-in concreto.
+     *
+     * @param {number} checkInId - Id del check-in.
+     * @param {string} text - Respuesta del cliente.
+     * @returns {Promise<Object>} Respuesta enviada.
+     */
+    async replyToCheckInFeedback(checkInId, text) {
+        return feedbackService.saveClientCheckInReply(checkInId, text);
     },
 };

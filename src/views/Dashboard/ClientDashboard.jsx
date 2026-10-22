@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiActivity, FiCheckCircle, FiPlay, FiTrendingUp, FiClipboard, FiPlus } from 'react-icons/fi';
+import { FiActivity, FiCheckCircle, FiPlay, FiTrendingUp, FiClipboard, FiPlus, FiMessageSquare } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import AnimeBanner from '../../components/complex/AnimeBanner/AnimeBanner.jsx';
 import { clientDashboardService } from '../../services/clientDashboardService.js';
+import { formatDate } from '../../utils/data.js';
 
 function ClientDashboard() {
     const [loading, setLoading] = useState(true);
@@ -13,20 +14,23 @@ function ClientDashboard() {
     const [checkInStats, setCheckInStats] = useState({ streak: 0, dietAdherence: 0, trainingAdherence: 0 });
     const [trainingStats, setTrainingStats] = useState({ completedThisWeek: 0 });
     const [nextEvent, setNextEvent] = useState(null);
+    const [latestFeedback, setLatestFeedback] = useState(null);
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [weight, checkIn, training, event] = await Promise.all([
+                const [weight, checkIn, training, event, feedback] = await Promise.all([
                     clientDashboardService.getWeightData(),
                     clientDashboardService.getCheckInStats(),
                     clientDashboardService.getTrainingStats(),
                     clientDashboardService.getNextEvent(),
+                    clientDashboardService.getLatestCoachFeedback(),
                 ]);
                 setWeightData(weight);
                 setCheckInStats(checkIn);
                 setTrainingStats(training);
                 setNextEvent(event);
+                setLatestFeedback(feedback);
             } catch (err) {
                 console.error('Error loading dashboard:', err);
             } finally {
@@ -84,6 +88,47 @@ function ClientDashboard() {
                     {statsCards.map((stat, index) => (
                         <StatCard key={index} value={stat.value} label={stat.label} icon={stat.icon} />
                     ))}
+                </div>
+            </section>
+
+            <section className="events-section">
+                <div style={{
+                    padding: '1.15rem 1.25rem',
+                    borderRadius: '14px',
+                    background: latestFeedback
+                        ? 'linear-gradient(135deg, rgba(230, 57, 70, 0.12) 0%, rgba(24, 27, 32, 0.95) 100%)'
+                        : 'var(--color-bg-secondary, #181b20)',
+                    border: `1px solid ${latestFeedback ? 'rgba(230, 57, 70, 0.35)' : 'var(--color-border, #282c34)'}`,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                }}>
+                    <div style={{ flex: 1, minWidth: '240px' }}>
+                        <h3 className="event-list-title" style={{ margin: '0 0 0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <FiMessageSquare style={{ color: 'var(--color-primary, #e63946)' }} />
+                            <span>Feedback de tu Entrenador</span>
+                            {latestFeedback && (
+                                <span style={{ fontSize: '0.78rem', fontWeight: 400, color: '#9aa0a6' }}>
+                                    · {formatDate(latestFeedback.updatedAt || latestFeedback.createdAt)}
+                                </span>
+                            )}
+                        </h3>
+                        <p style={{ margin: 0, color: latestFeedback ? '#f1f5f9' : '#9aa0a6', lineHeight: 1.5, fontSize: '0.92rem' }}>
+                            {latestFeedback
+                                ? latestFeedback.text
+                                : 'Aún no tienes mensajes recientes de tu entrenador. Puedes escribirle desde el apartado de Check-Ins.'}
+                        </p>
+                    </div>
+                    <Link
+                        to="/app/checkin"
+                        className="btn-secondary"
+                        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                    >
+                        <FiMessageSquare />
+                        <span>{latestFeedback ? 'Ver y responder' : 'Abrir canal de feedback'}</span>
+                    </Link>
                 </div>
             </section>
 
