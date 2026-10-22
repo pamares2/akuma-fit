@@ -17,3 +17,54 @@
 @import './styles/primitives.css';
 @import './styles/calendar.css';
 @import './styles/anime.css';
+
+/* ==========================================================================
+   ESTILOS DE IMPRESIÓN Y EXPORTACIÓN A PDF (DIETA ANEF Y RUTINAS)
+   ========================================================================== */
+@media print {
+  header,
+  nav,
+  .bottom-nav,
+  .floating-actions,
+  button,
+  .btn-outline,
+  .btn-primary,
+  .theme-selector,
+  .logout-button,
+  .rest-timer-floating {
+    display: none !important;
+  }
+
+  body,
+  .dashboard-main,
+  .diet-page,
+  .my-plan-page,
+  .page-container {
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .nutrition-day-card,
+  .nutrition-slot,
+  .routine-exercise-card,
+  .exercise-detail-card {
+    border: 1px solid #d1d5db !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 1rem !important;
+  }
+
+  .nutrition-day-content {
+    display: block !important;
+  }
+
+  .sets-table-row {
+    border-bottom: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+  }
+}

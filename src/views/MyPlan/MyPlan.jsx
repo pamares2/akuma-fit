@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiInfo } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiInfo, FiPrinter } from 'react-icons/fi';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { routineService } from '../../services/routineService.js';
 import ExerciseVideo from '../../components/complex/ExerciseVideo/ExerciseVideo.jsx';
@@ -149,10 +149,21 @@ function MyPlan() {
         return (
             <div className="my-plan-page">
                 <div className="page-container">
-                    <button onClick={handleBackToRoutines} className="btn-outline">
-                        <FiChevronLeft size={18} />
-                        <span>Volver a rutinas</span>
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <button onClick={handleBackToRoutines} className="btn-outline">
+                            <FiChevronLeft size={18} />
+                            <span>Volver a rutinas</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="btn-outline"
+                            onClick={() => window.print()}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                        >
+                            <FiPrinter />
+                            <span>📄 Imprimir / Guardar PDF</span>
+                        </button>
+                    </div>
 
                     <div className="routine-detail-header">
                         <h1 className="page-title">{selectedRoutine.title}</h1>

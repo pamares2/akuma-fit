@@ -31,9 +31,30 @@ export function useTrainingSession({ session, routine, fullSession, onFinished, 
         [routine, fullSession]
     );
 
-    const [setValues, setSetValues] = useState(() => buildInitialSetValues(matchedExercises));
-    const [completedMap, setCompletedMap] = useState(() => buildInitialCompletedMap(matchedExercises));
-    const [rpeMap, setRpeMap] = useState(() => buildInitialRpeMap(matchedExercises));
+    // Carga de respaldo offline inicial por si el atleta perdió cobertura en el gimnasio
+    const getOfflineBackup = () => {
+        if (typeof window === 'undefined' || !session?.id) return null;
+        try {
+            const raw = window.localStorage.getItem(`akuma_offline_session_${session.id}`);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    };
+    const offlineDraft = getOfflineBackup();
+
+    const [setValues, setSetValues] = useState(() => ({
+        ...buildInitialSetValues(matchedExercises),
+        ...(offlineDraft?.setValues || {}),
+    }));
+    const [completedMap, setCompletedMap] = useState(() => ({
+        ...buildInitialCompletedMap(matchedExercises),
+        ...(offlineDraft?.completedMap || {}),
+    }));
+    const [rpeMap, setRpeMap] = useState(() => ({
+        ...buildInitialRpeMap(matchedExercises),
+        ...(offlineDraft?.rpeMap || {}),
+    }));
     const [currentIndex, setCurrentIndex] = useState(() => firstIncompleteIndex(matchedExercises));
     const [phase, setPhase] = useState('training'); 
     const [busy, setBusy] = useState(false);
@@ -42,6 +63,19 @@ export function useTrainingSession({ session, routine, fullSession, onFinished, 
     const [confirmAbandon, setConfirmAbandon] = useState(false);
 
     const lastSavedValuesRef = useRef(buildInitialSetValues(matchedExercises));
+
+    // Respaldo continuo en localStorage tras cada serie marcada
+    useEffect(() => {
+        if (typeof window === 'undefined' || !session?.id) return;
+        try {
+            window.localStorage.setItem(
+                `akuma_offline_session_${session.id}`,
+                JSON.stringify({ setValues, rpeMap, completedMap, updatedAt: Date.now() })
+            );
+        } catch {
+            // no-op
+        }
+    }, [session?.id, setValues, rpeMap, completedMap]);
 
     useEffect(() => {
         if (!hint) return undefined;
@@ -126,6 +160,12 @@ export function useTrainingSession({ session, routine, fullSession, onFinished, 
             const updatedCompleted = { ...completedMap, [row.id]: true };
             setCompletedMap(updatedCompleted);
 
+            // Iniciar automáticamente el cronómetro flotante de descanso para el atleta
+            if (typeof window !== 'undefined') {
+                const restSec = exercise.rest_seconds || 90;
+                window.dispatchEvent(new CustomEvent('akuma_start_rest_timer', { detail: { seconds: restSec } }));
+            }
+
             const allDone = matchedExercises.every(({ row: r }) => updatedCompleted[r.id]);
 
             if (allDone) {
@@ -169,6 +209,7 @@ export function useTrainingSession({ session, routine, fullSession, onFinished, 
 
         try {
             await sessionService.finish(session.id, feedback);
+            try { window.localStorage.removeItem(`akuma_offline_session_${session.id}`); } catch {}
             onFinished(buildSummary({
                 matchedExercises,
                 routineTitle: routine.title,
@@ -190,6 +231,7 @@ export function useTrainingSession({ session, routine, fullSession, onFinished, 
 
         try {
             await sessionService.cancel(session.id);
+            try { window.localStorage.removeItem(`akuma_offline_session_${session.id}`); } catch {}
             onCancelled();
         } catch (err) {
             setActionError(err.message);

@@ -62,6 +62,17 @@ export default function RestTimer() {
         setIsOpen(true);
     };
 
+    // Escuchar eventos automáticos al completar una serie o ejercicio
+    useEffect(() => {
+        const handleAutoStart = (e) => {
+            const sec = e.detail?.seconds || 90;
+            startTimer(sec);
+        };
+
+        window.addEventListener('akuma_start_rest_timer', handleAutoStart);
+        return () => window.removeEventListener('akuma_start_rest_timer', handleAutoStart);
+    }, []);
+
     const addTime = (extra) => {
         setSecondsLeft((prev) => prev + extra);
         setIsRunning(true);

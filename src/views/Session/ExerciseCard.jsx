@@ -1,5 +1,6 @@
 import { FiCheck } from 'react-icons/fi';
 import ExerciseVideo from '../../components/complex/ExerciseVideo/ExerciseVideo.jsx';
+import { calculateEstimated1RM } from '../../utils/oneRepMax.js';
 
 const RPE_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -100,6 +101,40 @@ function ExerciseCard({
                     );
                 })}
             </div>
+
+            {(() => {
+                const max1RM = sets.reduce((max, s) => {
+                    const val = setValues[`${row.id}:${s.order}`] || {};
+                    const reps = Number(val.reps ?? s.reps);
+                    const kg = Number(val.kg ?? s.kg);
+                    if (reps > 0 && kg > 0) {
+                        const est = calculateEstimated1RM(kg, reps);
+                        return est > max ? est : max;
+                    }
+                    return max;
+                }, 0);
+
+                if (max1RM <= 0) return null;
+                return (
+                    <div style={{
+                        marginTop: '0.45rem',
+                        marginBottom: '0.5rem',
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: '8px',
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        color: '#fbbf24',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                    }}>
+                        <span>🏆 1RM Estimado: <strong>{max1RM} kg</strong></span>
+                        <span style={{ fontSize: '0.68rem', opacity: 0.75 }}>· Fórmula Epley</span>
+                    </div>
+                );
+            })()}
 
             {completed ? (
                 <div className="session-exercise-actions">

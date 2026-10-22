@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BodyPhotoCapture from '../../components/complex/BodyPhotoCapture/BodyPhotoCapture.jsx';
+import PhotoComparator from '../../components/complex/PhotoComparator/PhotoComparator.jsx';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import { photoService } from '../../services/photoService.js';
 import { getCurrentProfile } from '../../utils/auth.js';
@@ -75,6 +76,8 @@ function BodyPhotos({ onBack }) {
             </div>
 
             <BodyPhotoCapture onPhotosChange={handlePhotosChange} />
+
+            <PhotoComparator clientName="Tu Progreso" />
 
             <div className="body-photos-actions">
                 {saving && <Spinner text="Guardando fotos..." />}

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiMenu, FiLogOut, FiUserCheck, FiCornerUpLeft } from 'react-icons/fi';
 import ThemeSelector from '../ThemeSelector/ThemeSelector.jsx';
 import InstallPwaModal from '../InstallPwaModal/InstallPwaModal.jsx';
+import NotificationBell from '../NotificationBell/NotificationBell.jsx';
 import { useTheme } from '../../../context/useTheme.js';
 import { useAuth } from '../../../context/useAuth.js';
 import { DEMO_CHAT_CLIENTS } from '../../../services/feedbackService.js';
@@ -142,6 +143,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                     </div>
                 )}
 
+                <NotificationBell />
                 <ThemeSelector />
                 <button
                     onClick={onLogout}

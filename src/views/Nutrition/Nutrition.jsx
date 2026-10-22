@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown, FiBookOpen } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiBookOpen, FiShoppingCart, FiPrinter } from 'react-icons/fi';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { mealPlanService } from '../../services/mealPlanService.js';
 import { useAuth } from '../../context/useAuth.js';
 import RecipeDetailModal from '../../components/complex/RecipeDetailModal/RecipeDetailModal.jsx';
+import ShoppingListModal from '../../components/complex/ShoppingListModal/ShoppingListModal.jsx';
 import {
     itemMacros,
     slotMacros,
@@ -76,6 +77,7 @@ function Nutrition() {
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [expandedDayId, setExpandedDayId] = useState(null);
     const [viewingRecipe, setViewingRecipe] = useState(null);
+    const [showShoppingList, setShowShoppingList] = useState(false);
 
     const { data: plans, loading, error } = useAsyncData(
         profileId ? () => mealPlanService.getByClient(profileId) : null,
@@ -117,13 +119,35 @@ function Nutrition() {
         return (
             <div className="diet-page">
                 <div className="page-container">
-                    <button
-                        className="btn-outline"
-                        onClick={() => setSelectedPlan(null)}
-                    >
-                        <FiChevronLeft size={18} />
-                        <span>Volver a planes</span>
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <button
+                            className="btn-outline"
+                            onClick={() => setSelectedPlan(null)}
+                        >
+                            <FiChevronLeft size={18} />
+                            <span>Volver a planes</span>
+                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button
+                                type="button"
+                                className="btn-outline"
+                                onClick={() => setShowShoppingList(true)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                            >
+                                <FiShoppingCart />
+                                <span>🛒 Lista de la Compra</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-outline"
+                                onClick={() => window.print()}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                            >
+                                <FiPrinter />
+                                <span>📄 Imprimir / Guardar PDF</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <div className="routine-detail-header">
                         <h1 className="page-title">{selectedPlan.title}</h1>
@@ -215,6 +239,12 @@ function Nutrition() {
                         onClose={() => setViewingRecipe(null)}
                     />
                 )}
+
+                <ShoppingListModal
+                    mealPlan={selectedPlan}
+                    isOpen={showShoppingList}
+                    onClose={() => setShowShoppingList(false)}
+                />
             </div>
         );
     }
