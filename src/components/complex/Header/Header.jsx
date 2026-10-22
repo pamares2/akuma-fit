@@ -1,14 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { FiMenu, FiLogOut, FiUserCheck, FiCornerUpLeft } from 'react-icons/fi';
 import ThemeSelector from '../ThemeSelector/ThemeSelector.jsx';
+import InstallPwaModal from '../InstallPwaModal/InstallPwaModal.jsx';
 import { useTheme } from '../../../context/useTheme.js';
 import { useAuth } from '../../../context/useAuth.js';
 import { DEMO_CHAT_CLIENTS } from '../../../services/feedbackService.js';
 
 /**
  * Cabecera accesible y responsive de la app con selector de tema anime,
- * selector de vista en vivo ("Ver como Entrenador / Cliente de prueba")
- * y control de sesión seguro.
+ * botón directo de instalación de la app PWA, selector de vista en vivo
+ * ("Ver como Entrenador / Cliente de prueba") y control de sesión seguro.
  */
 function Header({ onLogout, onMenuToggle, menuOpen }) {
     const navigate = useNavigate();
@@ -59,6 +60,8 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
             </div>
 
             <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <InstallPwaModal />
+
                 {canSwitchDemoView && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                         {impersonatedClientId && (
@@ -80,7 +83,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                     fontSize: '0.78rem',
                                     fontWeight: 700,
                                     cursor: 'pointer',
-                                    minHeight: '36px',
+                                    minHeight: '34px',
                                 }}
                                 title="Salir de la vista de cliente y volver al panel de Entrenador"
                                 aria-label="Volver a la vista de Entrenador"
@@ -100,7 +103,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                 ? 'rgba(16, 185, 129, 0.16)'
                                 : 'rgba(255, 255, 255, 0.06)',
                             border: `1px solid ${impersonatedClientId ? 'rgba(16, 185, 129, 0.45)' : 'rgba(255, 255, 255, 0.14)'}`,
-                            minHeight: '36px',
+                            minHeight: '34px',
                         }}>
                             <FiUserCheck
                                 size={14}
@@ -145,7 +148,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                     className="logout-button"
                     title="Cerrar sesión"
                     aria-label="Cerrar sesión de Akuma Fit"
-                    style={{ minHeight: '36px' }}
+                    style={{ minHeight: '34px' }}
                 >
                     <FiLogOut size={16} aria-hidden="true" />
                     <span className="button-text">Salir</span>
