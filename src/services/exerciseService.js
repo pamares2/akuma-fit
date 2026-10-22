@@ -156,12 +156,12 @@ export const exerciseService = {
     async search(filters = {}) {
         let { data, error } = await fetchExercisesFromClient(supabase, filters, true);
 
-        // Si las políticas RLS de usuario autenticado devuelven vacío o error,
-        // consultar mediante el cliente público sin sesión (lectura global del catálogo)
-        if (error || !data || data.length === 0) {
+        // Si las políticas RLS de usuario autenticado filtran el catálogo global
+        // (devolviendo solo ejercicios propios como 1 test), combinar con el catálogo público
+        if (error || !data || data.length < 15) {
             const pubWithTags = await fetchExercisesFromClient(publicSupabase, filters, true);
             if (!pubWithTags.error && pubWithTags.data && pubWithTags.data.length > 0) {
-                data = pubWithTags.data;
+                data = [...(data || []), ...pubWithTags.data];
                 error = null;
             }
         }
