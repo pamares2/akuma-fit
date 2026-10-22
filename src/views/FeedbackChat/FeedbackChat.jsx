@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
     FiMessageSquare,
@@ -53,6 +53,15 @@ function FeedbackChat() {
         [userRole, reloadKey],
         []
     );
+
+    // Sincronización en directo de la bandeja de conversaciones (Web & Móvil)
+    useEffect(() => {
+        if (userRole !== 'coach') return undefined;
+        const unsubscribe = feedbackService.subscribeToClientFeedback('all', () => {
+            setReloadKey(k => k + 1);
+        });
+        return () => unsubscribe();
+    }, [userRole]);
 
     const filteredConversations = useMemo(() => {
         return (conversations || []).filter((conv) => {
@@ -126,9 +135,32 @@ function FeedbackChat() {
                 marginBottom: '1.25rem',
             }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <h1 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                         <FiMessageSquare style={{ color: 'var(--color-primary, #e63946)' }} />
                         <span>Feedback y Chat 1 a 1 con Clientes</span>
+                        <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            padding: '0.2rem 0.65rem',
+                            borderRadius: '999px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            color: '#10b981',
+                            border: '1px solid rgba(16, 185, 129, 0.4)',
+                            boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)',
+                        }}>
+                            <span style={{
+                                width: '7px',
+                                height: '7px',
+                                borderRadius: '50%',
+                                backgroundColor: '#10b981',
+                                boxShadow: '0 0 6px #10b981',
+                                display: 'inline-block',
+                            }} />
+                            En directo (Web & App)
+                        </span>
                     </h1>
                     <p style={{ margin: '0.25rem 0 0', color: 'var(--color-text-secondary, #9aa0a6)', fontSize: '0.9rem' }}>
                         Comunicación directa e individualizada con cada atleta, conectada a su Dieta ANEF, rutina y check-ins.

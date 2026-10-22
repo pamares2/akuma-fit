@@ -1,9 +1,63 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 
+const isTestEnv = (typeof globalThis !== 'undefined' && globalThis?.process?.env?.NODE_ENV === 'test')
+    || (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test');
+
 const FEEDBACK_MARKER_TITLE = '__AKUMA_FEEDBACK__';
 const FEEDBACK_DTSTART = '2000-01-01';
 const DEMO_STORAGE_KEY = 'akuma_demo_feedback_chats_v2';
+
+/**
+ * Emite un evento en directo para que se refleje instantáneamente
+ * en la web, la app móvil instalada y otras pestañas activas.
+ *
+ * @param {number|string} clientProfileId - Id del cliente.
+ * @param {Object} payload - Contenido del mensaje o actualización.
+ */
+export function broadcastLiveFeedback(clientProfileId, payload) {
+    if (typeof window === 'undefined') return;
+
+    const targetId = String(clientProfileId);
+
+    // 1. Evento DOM local en la ventana actual (latencia 0 ms)
+    try {
+        window.dispatchEvent(new CustomEvent('akuma_feedback_live_event', {
+            detail: { clientProfileId: targetId, payload, timestamp: Date.now() },
+        }));
+    } catch {
+        // no-op
+    }
+
+    // 2. BroadcastChannel para sincronizar pestañas en el mismo navegador/dispositivo
+    try {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('akuma_feedback_live_sync');
+            bc.postMessage({ clientProfileId: targetId, payload, timestamp: Date.now() });
+            bc.close();
+        }
+    } catch {
+        // no-op
+    }
+
+    // 3. Supabase Realtime WebSocket Broadcast (comunicación instantánea móvil <-> web sin retraso)
+    if (!isTestEnv && supabase && typeof supabase.channel === 'function') {
+        try {
+            const channel = supabase.channel(`akuma-chat-live-${targetId}`);
+            channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    channel.send({
+                        type: 'broadcast',
+                        event: 'new_chat_message',
+                        payload: { clientProfileId: targetId, payload, timestamp: Date.now() },
+                    });
+                }
+            });
+        } catch {
+            // no-op
+        }
+    }
+}
 
 /**
  * Categorías / temas disponibles para etiquetar cada mensaje del chat 1 a 1.
@@ -422,7 +476,52 @@ export const feedbackService = {
 
         if (isDemoClientId(clientProfileId)) {
             const store = loadDemoStore();
-            const demoMessages = store[clientProfileId] || [];
+            let demoMessages = store[clientProfileId] || [];
+
+            // Sincronización en la nube para clientes de prueba entre dispositivos (móvil y portátil/web)
+            if (!isTestEnv) {
+                try {
+                    const queryPromise = supabase
+                        .from('calendar_event')
+                        .select('id, description, created_at')
+                        .eq('title', '__AKUMA_FEEDBACK_DEMO__')
+                        .eq('active', false)
+                        .order('created_at', { ascending: true });
+
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('timeout')), 1500)
+                    );
+
+                    const { data: remoteDemoRows } = await Promise.race([queryPromise, timeoutPromise]);
+
+                    if (remoteDemoRows && remoteDemoRows.length > 0) {
+                        const remoteMessages = remoteDemoRows
+                            .map(row => {
+                                try { return JSON.parse(row.description); } catch { return null; }
+                            })
+                            .filter(m => m && String(m.demoTargetClientId || m.profileId) === String(clientProfileId));
+
+                        if (remoteMessages.length > 0) {
+                            const seenIds = new Set();
+                            const merged = [];
+                            for (const m of [...demoMessages, ...remoteMessages]) {
+                                const key = m.rowId || `${m.createdAt}_${m.text}`;
+                                if (!seenIds.has(key)) {
+                                    seenIds.add(key);
+                                    merged.push(m);
+                                }
+                            }
+                            merged.sort((a, b) => new Date(a.createdAt || a.updatedAt) - new Date(b.createdAt || b.updatedAt));
+                            store[clientProfileId] = merged;
+                            saveDemoStore(store);
+                            demoMessages = merged;
+                        }
+                    }
+                } catch {
+                    // Fallback automático al almacenamiento local
+                }
+            }
+
             const byCheckInId = {};
             for (const entry of demoMessages) {
                 if (entry.kind === 'checkin_feedback' && entry.checkInId) {
@@ -544,6 +643,7 @@ export const feedbackService = {
             const list = store[clientProfileId] || [];
             store[clientProfileId] = [...list, payloadObj];
             saveDemoStore(store);
+            broadcastLiveFeedback(clientProfileId, payloadObj);
             return payloadObj;
         }
 
@@ -578,6 +678,7 @@ export const feedbackService = {
                 .eq('id', existing.rowId);
 
             if (error) throw new Error(error.message);
+            broadcastLiveFeedback(clientProfileId, payloadObj);
             return payloadObj;
         }
 
@@ -594,6 +695,7 @@ export const feedbackService = {
             });
 
         if (error) throw new Error(error.message);
+        broadcastLiveFeedback(clientProfileId, payloadObj);
         return payloadObj;
     },
 
@@ -638,6 +740,7 @@ export const feedbackService = {
             });
 
         if (error) throw new Error(error.message);
+        broadcastLiveFeedback(profile.id, payloadObj);
         return payloadObj;
     },
 
@@ -681,6 +784,30 @@ export const feedbackService = {
             const currentList = store[clientProfileId] || [];
             store[clientProfileId] = [...currentList, demoMsg];
             saveDemoStore(store);
+
+            // Persistencia en Supabase para sincronización remota entre dispositivos
+            if (!isTestEnv) {
+                try {
+                    const profile = await getCurrentProfile().catch(() => null);
+                    if (profile?.id) {
+                        await supabase
+                            .from('calendar_event')
+                            .insert({
+                                profile_id: profile.id,
+                                created_by: profile.id,
+                                event_type: 'info',
+                                title: '__AKUMA_FEEDBACK_DEMO__',
+                                description: JSON.stringify({ ...demoMsg, demoTargetClientId: clientProfileId }),
+                                dtstart: FEEDBACK_DTSTART,
+                                active: false,
+                            });
+                    }
+                } catch {
+                    // fallback local silencioso
+                }
+            }
+
+            broadcastLiveFeedback(clientProfileId, demoMsg);
             return demoMsg;
         }
 
@@ -715,6 +842,7 @@ export const feedbackService = {
             });
 
         if (error) throw new Error(error.message);
+        broadcastLiveFeedback(targetProfileId, payloadObj);
         return payloadObj;
     },
 
@@ -842,39 +970,126 @@ export const feedbackService = {
     },
 
     /**
-     * Suscribe en tiempo real a los mensajes nuevos de un cliente en Supabase.
+     * Suscribe en tiempo real a los mensajes de un cliente tanto en Supabase Realtime (WebSockets)
+     * como a través de canales de broadcast de navegador y sondeo activo adaptativo.
      *
-     * @param {number|string} clientProfileId - Id del perfil del cliente.
-     * @param {() => void} onNewEvent - Callback al detectar un cambio.
-     * @returns {() => void} Función para cancelar la suscripción.
+     * @param {number|string} clientProfileId - Id del cliente o 'all' para el buzón del coach.
+     * @param {(payload?: Object) => void} onNewEvent - Callback al recibir o detectar un nuevo mensaje.
+     * @returns {() => void} Función de limpieza para cancelar la suscripción.
      */
     subscribeToClientFeedback(clientProfileId, onNewEvent) {
-        if (!clientProfileId || isDemoClientId(clientProfileId) || typeof supabase?.channel !== 'function') {
+        if (!clientProfileId || typeof onNewEvent !== 'function') {
             return () => {};
         }
 
+        const targetId = String(clientProfileId);
+
+        // 1. Escuchar eventos DOM locales en la misma pestaña
+        const handleLocalEvent = (e) => {
+            const detail = e?.detail;
+            if (!detail) return;
+            if (targetId === 'all' || String(detail.clientProfileId) === targetId) {
+                onNewEvent(detail.payload);
+            }
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('akuma_feedback_live_event', handleLocalEvent);
+        }
+
+        // 2. Escuchar BroadcastChannel (entre pestañas del mismo dispositivo/navegador)
+        let bc = null;
         try {
-            const channel = supabase
-                .channel(`feedback-chat-${clientProfileId}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'calendar_event',
-                        filter: `profile_id=eq.${clientProfileId}`,
-                    },
-                    () => {
-                        if (onNewEvent) onNewEvent();
+            if (typeof BroadcastChannel !== 'undefined') {
+                bc = new BroadcastChannel('akuma_feedback_live_sync');
+                bc.onmessage = (event) => {
+                    const data = event.data;
+                    if (!data) return;
+                    if (targetId === 'all' || String(data.clientProfileId) === targetId) {
+                        onNewEvent(data.payload);
                     }
-                )
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
+                };
+            }
         } catch {
-            return () => {};
+            // no-op
         }
+
+        // 3. Supabase Realtime WebSocket Broadcast Channel (entre dispositivos Web y Móvil)
+        let supabaseChannel = null;
+        if (!isTestEnv && supabase && typeof supabase.channel === 'function') {
+            try {
+                const channelName = `akuma-chat-live-${targetId}`;
+                supabaseChannel = supabase.channel(channelName);
+
+                supabaseChannel.on('broadcast', { event: 'new_chat_message' }, ({ payload }) => {
+                    if (targetId === 'all' || String(payload?.clientProfileId) === targetId) {
+                        onNewEvent(payload?.payload);
+                    }
+                });
+
+                // Escuchar también cambios de Postgres en calendar_event
+                if (targetId !== 'all' && !isDemoClientId(targetId)) {
+                    supabaseChannel.on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'calendar_event',
+                            filter: `profile_id=eq.${targetId}`,
+                        },
+                        () => onNewEvent()
+                    );
+                } else {
+                    supabaseChannel.on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'calendar_event',
+                        },
+                        () => onNewEvent()
+                    );
+                }
+
+                supabaseChannel.subscribe();
+            } catch {
+                // no-op
+            }
+        }
+
+        // 4. Polling adaptativo cada 2.5s y reactivación inmediata al volver al foco en la app móvil
+        let intervalId = null;
+        let handleVisibility = null;
+
+        if (typeof window !== 'undefined' && !isTestEnv) {
+            intervalId = setInterval(() => {
+                onNewEvent();
+            }, 2500);
+
+            handleVisibility = () => {
+                if (document.visibilityState === 'visible') {
+                    onNewEvent();
+                }
+            };
+            document.addEventListener('visibilitychange', handleVisibility);
+            window.addEventListener('focus', onNewEvent);
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('akuma_feedback_live_event', handleLocalEvent);
+                if (handleVisibility) {
+                    document.removeEventListener('visibilitychange', handleVisibility);
+                }
+                window.removeEventListener('focus', onNewEvent);
+            }
+            if (bc) {
+                try { bc.close(); } catch {}
+            }
+            if (supabaseChannel && typeof supabase?.removeChannel === 'function') {
+                try { supabase.removeChannel(supabaseChannel); } catch {}
+            }
+        };
     },
 };

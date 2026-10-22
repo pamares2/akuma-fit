@@ -6,7 +6,6 @@ import {
     getCoachQuickTemplates,
     CLIENT_QUICK_TEMPLATES,
 } from '../../../services/feedbackService.js';
-import { useAsyncData } from '../../../hooks/useAsyncData.js';
 import { formatDate } from '../../../utils/data.js';
 
 /**
@@ -62,29 +61,75 @@ function FeedbackThread({
     chatHeight = '420px',
     onFeedbackSent,
 }) {
+    const [messages, setMessages] = useState([]);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loadError, setLoadError] = useState(null);
     const [text, setText] = useState('');
     const [selectedTopic, setSelectedTopic] = useState('general');
     const [activeSenderRole, setActiveSenderRole] = useState(viewerRole);
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState(null);
-    const [reloadKey, setReloadKey] = useState(0);
     const messagesEndRef = useRef(null);
 
-    const { data: messages, loading, error: loadError } = useAsyncData(
-        clientProfileId
-            ? () => feedbackService.getFeedbackForClient(clientProfileId).then(res => res.messages || [])
-            : null,
-        [clientProfileId, reloadKey],
-        []
-    );
+    // Carga silenciosa para sincronización en directo sin parpadeos ni pantalla en blanco
+    const reloadSilently = () => {
+        if (!clientProfileId) return;
+        setRefreshing(true);
+        feedbackService.getFeedbackForClient(clientProfileId)
+            .then((res) => {
+                const fetched = res?.messages || [];
+                setMessages((prev) => {
+                    const pendingOptimistic = prev.filter(m => m.isPending);
+                    const confirmedIds = new Set(fetched.map(m => m.rowId || `${m.createdAt}_${m.text}`));
+                    const stillPending = pendingOptimistic.filter(m => !confirmedIds.has(m.rowId) && !fetched.some(f => f.text === m.text && f.authorRole === m.authorRole));
+                    return [...fetched, ...stillPending];
+                });
+                setLoadError(null);
+            })
+            .catch((err) => {
+                setLoadError(err.message || 'Error sincronizando chat.');
+            })
+            .finally(() => {
+                setRefreshing(false);
+            });
+    };
 
-    // Suscripción en tiempo real a nuevos mensajes
+    // Carga inicial al montar o cambiar de cliente
+    useEffect(() => {
+        let active = true;
+        if (!clientProfileId) {
+            return undefined;
+        }
+
+        feedbackService.getFeedbackForClient(clientProfileId)
+            .then((res) => {
+                if (active) {
+                    setMessages(res?.messages || []);
+                    setLoadError(null);
+                    setInitialLoading(false);
+                }
+            })
+            .catch((err) => {
+                if (active) {
+                    setLoadError(err.message || 'Error cargando chat.');
+                    setInitialLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [clientProfileId]);
+
+    // Suscripción en tiempo real: WebSockets, BroadcastChannel y reconexión móvil
     useEffect(() => {
         if (!clientProfileId) return undefined;
         const unsubscribe = feedbackService.subscribeToClientFeedback(clientProfileId, () => {
-            setReloadKey(k => k + 1);
+            reloadSilently();
         });
         return () => unsubscribe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clientProfileId]);
 
     // Auto-scroll al último mensaje cuando cambia la lista
@@ -123,7 +168,7 @@ function FeedbackThread({
     }, [messages]);
 
     const handleRefresh = () => {
-        setReloadKey(k => k + 1);
+        reloadSilently();
     };
 
     const handleApplyTemplate = (tpl) => {
@@ -132,24 +177,45 @@ function FeedbackThread({
     };
 
     const submitCurrentMessage = async () => {
-        if (!text.trim() || sending) return;
+        const cleanMsg = text.trim();
+        if (!cleanMsg || sending) return;
+
         setSending(true);
         setSendError(null);
-        try {
-            const overrideAuthorName = activeSenderRole === 'coach'
-                ? 'Entrenador'
-                : (clientName || 'Cliente');
 
-            await feedbackService.sendMessage(clientProfileId, text.trim(), {
+        const overrideAuthorName = activeSenderRole === 'coach'
+            ? 'Entrenador'
+            : (clientName || 'Cliente');
+
+        // Inserción optimista instantánea (0 ms de espera visual para el usuario)
+        const tempId = `optimistic-${Date.now()}`;
+        const optimisticEntry = {
+            rowId: tempId,
+            profileId: clientProfileId,
+            kind: 'message',
+            topic: selectedTopic,
+            authorRole: activeSenderRole,
+            authorName: overrideAuthorName,
+            text: cleanMsg,
+            createdAt: new Date().toISOString(),
+            isPending: true,
+        };
+
+        setMessages(prev => [...prev, optimisticEntry]);
+        setText('');
+
+        try {
+            await feedbackService.sendMessage(clientProfileId, cleanMsg, {
                 topic: selectedTopic,
                 overrideRole: activeSenderRole,
                 overrideAuthorName: allowRoleSwitch ? overrideAuthorName : undefined,
             });
-            setText('');
-            setReloadKey(k => k + 1);
+            reloadSilently();
             if (onFeedbackSent) onFeedbackSent();
         } catch (err) {
             setSendError(err.message || 'No se pudo enviar el mensaje.');
+            // Eliminar mensaje optimista si falló
+            setMessages(prev => prev.filter(m => m.rowId !== tempId));
         } finally {
             setSending(false);
         }
@@ -213,22 +279,33 @@ function FeedbackThread({
                         {(clientName || 'E').trim().charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <FiMessageCircle style={{ color: 'var(--color-primary, #e63946)' }} />
                             <span>{title}</span>
                             <span style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '0.3rem',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                padding: '0.15rem 0.55rem',
+                                gap: '0.35rem',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                padding: '0.2rem 0.65rem',
                                 borderRadius: '999px',
                                 background: 'rgba(16, 185, 129, 0.15)',
                                 color: '#10b981',
-                                border: '1px solid rgba(16, 185, 129, 0.35)',
-                            }}>
-                                ● Activo 1:1
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)',
+                            }}
+                            title="Sincronización en tiempo real vía WebSockets activa para Web y App móvil"
+                            >
+                                <span style={{
+                                    width: '7px',
+                                    height: '7px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#10b981',
+                                    boxShadow: '0 0 6px #10b981',
+                                    display: 'inline-block',
+                                }} />
+                                En directo (Web & App)
                             </span>
                         </h2>
                         <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--color-text-secondary, #9aa0a6)' }}>
@@ -290,7 +367,7 @@ function FeedbackThread({
                         style={{ padding: '0.35rem 0.7rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                         title="Actualizar mensajes"
                     >
-                        <FiRefreshCw size={13} />
+                        <FiRefreshCw size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
                         <span>Actualizar</span>
                     </button>
                 </div>
@@ -309,7 +386,7 @@ function FeedbackThread({
                 background: 'linear-gradient(180deg, rgba(12, 14, 18, 0.85) 0%, rgba(17, 20, 26, 0.95) 100%)',
                 border: '1px solid rgba(255, 255, 255, 0.06)',
             }}>
-                {loading ? (
+                {initialLoading ? (
                     <div style={{ textAlign: 'center', margin: 'auto', color: '#9aa0a6', fontSize: '0.9rem' }}>
                         Cargando conversación 1 a 1...
                     </div>
@@ -342,7 +419,7 @@ function FeedbackThread({
                                 const isMine = msg.authorRole === viewerRole;
                                 const isCoachMsg = msg.authorRole === 'coach';
                                 const topicMeta = FEEDBACK_TOPICS.find(t => t.id === msg.topic) || FEEDBACK_TOPICS[0];
-                                const timeText = formatTime(msg.updatedAt || msg.createdAt);
+                                const timeText = msg.isPending ? 'enviando...' : formatTime(msg.updatedAt || msg.createdAt);
 
                                 const kindBadge = msg.kind === 'checkin_feedback'
                                     ? '📋 Revisión Check-In'
@@ -359,11 +436,13 @@ function FeedbackThread({
                                             minWidth: '220px',
                                             padding: '0.75rem 1rem',
                                             borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                                            opacity: msg.isPending ? 0.78 : 1,
                                             background: isCoachMsg
                                                 ? 'linear-gradient(135deg, rgba(230, 57, 70, 0.22) 0%, rgba(230, 57, 70, 0.11) 100%)'
                                                 : 'linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(59, 130, 246, 0.11) 100%)',
                                             border: `1px solid ${isCoachMsg ? 'rgba(230, 57, 70, 0.4)' : 'rgba(59, 130, 246, 0.4)'}`,
                                             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                                            transition: 'opacity 0.2s ease',
                                         }}
                                     >
                                         <div style={{
