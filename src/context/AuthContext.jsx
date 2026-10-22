@@ -43,6 +43,22 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         let active = true;
 
+        // Limpia cualquier residuo de clientes o demo previo en el almacenamiento local del dispositivo
+        if (typeof window !== 'undefined' && window.localStorage && DEMO_CHAT_CLIENTS.length === 0) {
+            try {
+                const keysToRemove = [];
+                for (let i = 0; i < window.localStorage.length; i++) {
+                    const key = window.localStorage.key(i);
+                    if (key && (key.startsWith('akuma_demo_') || key === 'akuma_impersonate_client_id')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+            } catch {
+                // no-op
+            }
+        }
+
         const init = async () => {
             const { data: { session } } = await supabase.auth.getSession();
 

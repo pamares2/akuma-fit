@@ -375,8 +375,20 @@ function FeedbackChat() {
                             onFeedbackSent={() => setReloadKey(k => k + 1)}
                         />
                     ) : (
-                        <div className="empty-state">
-                            Selecciona un cliente a la izquierda para abrir su chat 1 a 1.
+                        <div className="empty-state" style={{ padding: '3rem 1.5rem', textAlign: 'center', background: 'var(--color-bg-secondary, #181b20)', borderRadius: '16px', border: '1px dashed var(--color-border, #282c34)' }}>
+                            <FiMessageSquare size={40} style={{ color: '#6b7280', marginBottom: '0.75rem' }} />
+                            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem' }}>Bandeja de mensajes lista</h3>
+                            <p style={{ color: '#9aa0a6', margin: '0 auto 1.5rem', maxWidth: '440px', fontSize: '0.9rem' }}>
+                                Aún no tienes atletas registrados. Cuando tu cliente se cree una cuenta y complete su valoración, aparecerá aquí al instante para iniciar el chat 1 a 1 en directo.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/app/clients')}
+                                className="btn-primary"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                            >
+                                <FiUser /> Ver enlace de registro en Clientes
+                            </button>
                         </div>
                     )}
                 </section>

@@ -1,6 +1,9 @@
 import { DEFAULT_RECIPES } from './defaultRecipes.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId } from '../services/feedbackService.js';
 
+const isTestEnv = (typeof globalThis !== 'undefined' && globalThis?.process?.env?.NODE_ENV === 'test')
+    || (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test');
+
 const DEMO_PLAN_ASSIGNMENTS_KEY = 'akuma_demo_plan_assignments_v1';
 const DEMO_CUSTOM_ROUTINES_KEY = 'akuma_demo_custom_routines_v1';
 const DEMO_CALENDAR_EVENTS_KEY = 'akuma_demo_calendar_events_v1';
@@ -54,6 +57,7 @@ export function unassignDemoPlan(planId, clientId) {
  * Devuelve los objetos de perfil demo asignados a un plan concreto.
  */
 export function getAssignedDemoClientsForPlan(planId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return [];
     const map = readDemoAssignmentsMap();
     const clientIds = map[String(planId)] || [];
     return clientIds
@@ -71,6 +75,7 @@ export function getAssignedDemoClientsForPlan(planId) {
  * Devuelve los IDs de planes reales que el entrenador haya asignado a un cliente de prueba.
  */
 export function getAssignedPlanIdsForDemoClient(clientId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return [];
     const map = readDemoAssignmentsMap();
     const planIds = [];
     for (const [planId, clients] of Object.entries(map)) {
@@ -93,6 +98,7 @@ function findRecipe(id) {
  * con Dieta Principal + Equivalencia 1, recetas detalladas, ingredientes en gramos e instrucciones.
  */
 export function buildDefaultDemoMealPlan(clientId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return null;
     if (clientId === 'demo-client-2') {
         return {
             id: 'demo-anef-plan-laura',
@@ -455,6 +461,7 @@ export function removeCustomDemoRoutine(clientId, routineId) {
  * Rutinas de entrenamiento preasignadas para los clientes de prueba + las creadas/editadas por el coach.
  */
 export function buildDefaultDemoRoutines(clientId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return [];
     const customMap = readCustomDemoRoutinesMap();
     const customRoutines = Array.isArray(customMap[clientId]) ? customMap[clientId] : [];
 
@@ -629,6 +636,7 @@ export function buildDefaultDemoRoutines(clientId) {
  * Busca una rutina de prueba por su ID.
  */
 export function getDemoRoutineById(routineId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return null;
     const allDemoRoutines = [
         ...buildDefaultDemoRoutines('demo-client-1'),
         ...buildDefaultDemoRoutines('demo-client-2'),
@@ -670,6 +678,7 @@ function buildProgressPhotoSvg({ clientName, dateLabel, positionLabel, weightLab
  * Devuelve las fotos corporales Antes/Después de los clientes de prueba para la vista de Reportes.
  */
 export function getDemoClientPhotos(clientId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return [];
     if (clientId === 'demo-client-2') {
         return [
             {
@@ -992,6 +1001,7 @@ export function isDemoEventId(eventId) {
 }
 
 export function getDemoCalendarData(clientId) {
+    if (!isTestEnv || DEMO_CHAT_CLIENTS.length === 0) return { events: [], logs: [] };
     const store = readDemoCalendarStore();
     const clientData = store[clientId] || { events: [], exceptions: [] };
     return {

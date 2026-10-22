@@ -90,11 +90,13 @@ function CoachCheckIns() {
         return (
             <div className="coach-checkins">
                 <h1 className="coach-checkins-title">Check-Ins y Feedback de Clientes</h1>
-                <div className="coach-checkins-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                    <p style={{ margin: 0 }}>Aún no tienes clientes registrados con check-ins, pero puedes abrir y probar el Chat 1 a 1 de Feedback.</p>
-                    <Link to="/app/feedback" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="coach-checkins-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1.5rem', textAlign: 'center' }}>
+                    <p style={{ margin: 0, maxWidth: '520px', color: '#9aa0a6' }}>
+                        Aún no tienes clientes registrados con check-ins. Cuando un atleta se registre y complete sus revisiones semanales, podrás analizar su evolución de peso, bienestar y responderle con feedback personalizado.
+                    </p>
+                    <Link to="/app/clients" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FiMessageSquare />
-                        <span>Abrir Chat y Feedback 1 a 1</span>
+                        <span>Ir a Gestión de Clientes</span>
                     </Link>
                 </div>
             </div>
