@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     FiSearch,
     FiUser,
@@ -10,21 +10,30 @@ import {
     FiFileText,
     FiX,
     FiClipboard,
-    FiMessageSquare
+    FiMessageSquare,
+    FiLogIn
 } from 'react-icons/fi';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
 import FeedbackThread from '../../components/complex/FeedbackThread/FeedbackThread.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
+import { useAuth } from '../../context/useAuth.js';
 import { clientManagementService } from '../../services/clientManagementService.js';
 
 export default function Clients() {
+    const navigate = useNavigate();
+    const { switchClientView } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [selectedAssessmentClient, setSelectedAssessmentClient] = useState(null);
     const [assessmentModalData, setAssessmentModalData] = useState(null);
     const [loadingAssessment, setLoadingAssessment] = useState(false);
     const [selectedFeedbackClient, setSelectedFeedbackClient] = useState(null);
+
+    const handleEnterAsClient = (client) => {
+        switchClientView(client.id);
+        navigate('/app/nutrition');
+    };
 
     const { data: clients, loading, error, reload } = useAsyncData(
         () => clientManagementService.getAllClients(),
@@ -189,6 +198,7 @@ export default function Clients() {
                         const routineCount = client.routines.length;
                         const mealPlanCount = client.mealPlans.length;
                         const lastCheckIn = client.latestCheckIn;
+                        const isDemoClient = String(client.id).startsWith('demo-client-');
 
                         return (
                             <div
@@ -205,27 +215,53 @@ export default function Clients() {
                                 }}
                             >
                                 <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                        <div style={{
-                                            width: '44px',
-                                            height: '44px',
-                                            borderRadius: '50%',
-                                            background: '#282c34',
-                                            color: 'var(--color-primary, #e63946)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1.2rem',
-                                            fontWeight: 700,
-                                        }}>
-                                            {client.name?.[0]?.toUpperCase() || 'C'}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{
+                                                width: '44px',
+                                                height: '44px',
+                                                borderRadius: '50%',
+                                                background: '#282c34',
+                                                color: 'var(--color-primary, #e63946)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1.2rem',
+                                                fontWeight: 700,
+                                            }}>
+                                                {client.name?.[0]?.toUpperCase() || 'C'}
+                                            </div>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{client.fullName}</h3>
+                                                <span style={{ fontSize: '0.8rem', color: '#9aa0a6' }}>
+                                                    {client.gender} {client.birthdate ? `• ${client.birthdate}` : ''}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{client.fullName}</h3>
-                                            <span style={{ fontSize: '0.8rem', color: '#9aa0a6' }}>
-                                                {client.gender} {client.birthdate ? `• ${client.birthdate}` : ''}
-                                            </span>
-                                        </div>
+
+                                        {isDemoClient && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEnterAsClient(client)}
+                                                style={{
+                                                    padding: '0.35rem 0.65rem',
+                                                    fontSize: '0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(16, 185, 129, 0.45)',
+                                                    background: 'rgba(16, 185, 129, 0.14)',
+                                                    color: '#10b981',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.35rem',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                                title={`Entrar como ${client.fullName} para ver su dieta ANEF y rutina`}
+                                            >
+                                                <FiLogIn /> Entrar como cliente
+                                            </button>
+                                        )}
                                     </div>
 
                                     {/* Insignias de Estado */}

@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { normalizeNumericFields } from '../utils/data.js';
-import { feedbackService } from './feedbackService.js';
+import { feedbackService, isDemoClientId, getDemoClientById } from './feedbackService.js';
 
 /**
  * Campos numéricos del check-in que se normalizan antes de insertar.
@@ -21,6 +21,11 @@ export const checkInService = {
     async getAll() {
         const profile = await getCurrentProfile();
 
+        if (isDemoClientId(profile.id)) {
+            const demo = getDemoClientById(profile.id);
+            return feedbackService.enrichCheckIns(profile.id, demo?.checkIns || []);
+        }
+
         const { data, error } = await supabase
             .from('check_in')
             .select('*')
@@ -38,6 +43,22 @@ export const checkInService = {
      */
     async create(checkInData) {
         const profile = await getCurrentProfile();
+        if (isDemoClientId(profile.id)) {
+            const demo = getDemoClientById(profile.id);
+            if (demo) {
+                demo.checkIns = [
+                    {
+                        id: Date.now(),
+                        profile_id: profile.id,
+                        created_at: new Date().toISOString(),
+                        ...normalizeNumericFields(checkInData, NUMERIC_FIELDS),
+                    },
+                    ...(demo.checkIns || []),
+                ];
+            }
+            return;
+        }
+
         const payload = normalizeNumericFields(
             { ...checkInData, profile_id: profile.id },
             NUMERIC_FIELDS
@@ -66,7 +87,7 @@ export const checkInService = {
      */
     async sendFeedbackToCoach(text) {
         const profile = await getCurrentProfile();
-        return feedbackService.sendMessage(profile.id, text);
+        return feedbackService.sendMessage(profile.id, text, { overrideRole: 'client' });
     },
 
     /**
@@ -77,6 +98,13 @@ export const checkInService = {
      * @returns {Promise<Object>} Respuesta enviada.
      */
     async replyToCheckInFeedback(checkInId, text) {
+        const profile = await getCurrentProfile();
+        if (isDemoClientId(profile.id)) {
+            return feedbackService.sendMessage(profile.id, text, {
+                topic: 'checkin',
+                overrideRole: 'client',
+            });
+        }
         return feedbackService.saveClientCheckInReply(checkInId, text);
     },
 };

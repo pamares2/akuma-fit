@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { normalizeNumericFields } from '../utils/data.js';
+import { isDemoClientId, getDemoClientById } from './feedbackService.js';
 
 /**
  * Campos numéricos de las medidas que se normalizan antes de insertar.
@@ -19,6 +20,13 @@ export const measurementService = {
     async getAll() {
         const profile = await getCurrentProfile();
 
+        if (isDemoClientId(profile.id)) {
+            const demo = getDemoClientById(profile.id);
+            return [...(demo?.measurements || [])].sort(
+                (a, b) => new Date(a.created_at) - new Date(b.created_at)
+            );
+        }
+
         const { data, error } = await supabase
             .from('measurement')
             .select('*')
@@ -36,6 +44,8 @@ export const measurementService = {
      */
     async create(measurementData) {
         const profile = await getCurrentProfile();
+        if (isDemoClientId(profile.id)) return;
+
         const payload = normalizeNumericFields(
             { ...measurementData, profile_id: profile.id },
             NUMERIC_FIELDS
@@ -52,6 +62,7 @@ export const measurementService = {
      */
     async createWeightOnly(weight) {
         const profile = await getCurrentProfile();
+        if (isDemoClientId(profile.id)) return;
 
         const payload = {
             profile_id: profile.id,

@@ -3,30 +3,30 @@ import { supabase } from '../supabaseClient.js';
 import { authService } from '../services/authService.js';
 import { profileService } from '../services/profileService.js';
 import { assessmentService } from '../services/assessmentService.js';
+import { DEMO_CHAT_CLIENTS } from '../services/feedbackService.js';
+import { getImpersonatedClientId, setImpersonatedClientId } from '../utils/auth.js';
 import { AuthContext } from './authContextInstance.js';
 
 /**
- * Proveedor del estado de sesión y perfil. Centraliza `email`, `profileId`,
- * `userRole` y `assessmentCompleted`, y expone las acciones de autenticación
- * (`login`, `logout`, `completeAssessment`), evitando el prop-drilling a
- * través de App -> Home -> pantallas.
- *
- * @param {Object} props - Props del provider.
- * @param {React.ReactNode} props.children - Hijos a envolver.
+ * Proveedor del estado de sesión y perfil. Permite además al entrenador
+ * alternar en vivo a la vista de cualquiera de los clientes de prueba
+ * (`Carlos Pérez` o `Laura Gómez`) para comprobar cómo ven su dieta ANEF,
+ * su rutina, su chat 1:1 y su progreso.
  */
 export function AuthProvider({ children }) {
-    const [status, setStatus] = useState('loading'); 
-    const [user, setUser] = useState(null);
-    const [profileId, setProfileId] = useState(null);
-    const [userRole, setUserRole] = useState('client');
+    const [status, setStatus] = useState('loading');
+    const [realUserEmail, setRealUserEmail] = useState(null);
+    const [realProfileId, setRealProfileId] = useState(null);
+    const [realUserRole, setRealUserRole] = useState('client');
     const [assessmentCompleted, setAssessmentCompleted] = useState(false);
+    const [impersonatedClientId, setImpersonatedState] = useState(() => getImpersonatedClientId());
 
     const loadProfile = useCallback(async () => {
         const profile = await profileService.getWithRole();
 
         if (!profile) {
-            setProfileId(null);
-            setUserRole('client');
+            setRealProfileId(null);
+            setRealUserRole('client');
             setAssessmentCompleted(false);
             return;
         }
@@ -35,8 +35,8 @@ export function AuthProvider({ children }) {
             ? true
             : await assessmentService.exists(profile.id).catch(() => false);
 
-        setProfileId(profile.id);
-        setUserRole(profile.role || 'client');
+        setRealProfileId(profile.id);
+        setRealUserRole(profile.role || 'client');
         setAssessmentCompleted(completed);
     }, []);
 
@@ -49,7 +49,7 @@ export function AuthProvider({ children }) {
             if (!active) return;
 
             if (session?.user) {
-                setUser(session.user.email);
+                setRealUserEmail(session.user.email);
                 await loadProfile();
                 setStatus('signed-in');
             } else {
@@ -61,9 +61,11 @@ export function AuthProvider({ children }) {
 
         const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_OUT') {
-                setUser(null);
-                setProfileId(null);
-                setUserRole('client');
+                setImpersonatedClientId(null);
+                setImpersonatedState(null);
+                setRealUserEmail(null);
+                setRealProfileId(null);
+                setRealUserRole('client');
                 setAssessmentCompleted(false);
                 setStatus('signed-out');
             }
@@ -77,16 +79,18 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (email, password) => {
         await authService.signIn(email, password);
-        setUser(email);
+        setRealUserEmail(email);
         await loadProfile();
         setStatus('signed-in');
     }, [loadProfile]);
 
     const logout = useCallback(async () => {
+        setImpersonatedClientId(null);
+        setImpersonatedState(null);
         await authService.signOut();
-        setUser(null);
-        setProfileId(null);
-        setUserRole('client');
+        setRealUserEmail(null);
+        setRealProfileId(null);
+        setRealUserRole('client');
         setAssessmentCompleted(false);
         setStatus('signed-out');
     }, []);
@@ -95,12 +99,32 @@ export function AuthProvider({ children }) {
         setAssessmentCompleted(true);
     }, []);
 
+    const switchClientView = useCallback((demoClientId) => {
+        const nextId = demoClientId || null;
+        setImpersonatedClientId(nextId);
+        setImpersonatedState(nextId);
+    }, []);
+
+    const activeDemoClient = impersonatedClientId
+        ? DEMO_CHAT_CLIENTS.find(c => String(c.id) === String(impersonatedClientId))
+        : null;
+
+    const isImpersonating = Boolean(activeDemoClient);
+    const effectiveUserRole = isImpersonating ? 'client' : realUserRole;
+    const effectiveProfileId = isImpersonating ? activeDemoClient.id : realProfileId;
+    const effectiveUser = isImpersonating ? activeDemoClient.fullName : realUserEmail;
+    const effectiveAssessmentCompleted = isImpersonating ? true : assessmentCompleted;
+
     const value = {
         status,
-        user,
-        profileId,
-        userRole,
-        assessmentCompleted,
+        user: effectiveUser,
+        profileId: effectiveProfileId,
+        userRole: effectiveUserRole,
+        realUserRole,
+        impersonatedClientId: isImpersonating ? activeDemoClient.id : null,
+        impersonatedClientName: isImpersonating ? activeDemoClient.fullName : null,
+        switchClientView,
+        assessmentCompleted: effectiveAssessmentCompleted,
         login,
         logout,
         completeAssessment,

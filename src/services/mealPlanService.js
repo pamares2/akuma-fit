@@ -3,6 +3,7 @@ import { getCurrentProfile } from '../utils/auth.js';
 import { DEFAULT_RECIPES } from '../data/defaultRecipes.js';
 import { recipeService } from './recipeService.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId, getDemoClientById } from './feedbackService.js';
+import { assignDemoPlan, unassignDemoPlan, getAssignedPlanIdsForDemoClient, getAssignedDemoClientsForPlan, buildDefaultDemoMealPlan } from '../data/demoClientPlans.js';
 
 /**
  * Selección completa de un plan: días -> comidas -> ítems (con alimento o
@@ -306,9 +307,10 @@ export const mealPlanService = {
 
         return (data || []).map(plan => {
             const dayCount = plan.meal_plan_day?.length || 0;
-            const clients = (plan.profile_has_meal_plan || [])
-                .map(rel => rel.profile)
-                .filter(Boolean);
+            const clients = [
+                ...(plan.profile_has_meal_plan || []).map(rel => rel.profile).filter(Boolean),
+                ...getAssignedDemoClientsForPlan(plan.id)
+            ];
 
             const rest = { ...plan };
             delete rest.meal_plan_day;
@@ -335,9 +337,10 @@ export const mealPlanService = {
 
         if (error) throw new Error(error.message);
 
-        const clients = (data.profile_has_meal_plan || [])
-            .map(rel => rel.profile)
-            .filter(Boolean);
+        const clients = [
+            ...(data.profile_has_meal_plan || []).map(rel => rel.profile).filter(Boolean),
+            ...getAssignedDemoClientsForPlan(data.id)
+        ];
 
         const rest = { ...data };
         delete rest.profile_has_meal_plan;
@@ -351,6 +354,24 @@ export const mealPlanService = {
      * @returns {Promise<Array>} Lista de planes.
      */
     async getByClient(clientId) {
+        if (isDemoClientId(clientId)) {
+            const assignedIds = getAssignedPlanIdsForDemoClient(clientId);
+            let realAssignedPlans = [];
+            if (assignedIds.length > 0) {
+                try {
+                    const { data: realData } = await supabase
+                        .from('meal_plan')
+                        .select(PLAN_FULL_SELECT)
+                        .in('id', assignedIds)
+                        .order('created_at', { ascending: false });
+                    realAssignedPlans = (realData || []).map(mapPlan);
+                } catch {
+                    realAssignedPlans = [];
+                }
+            }
+            return [...realAssignedPlans, buildDefaultDemoMealPlan(clientId)];
+        }
+
         const { data, error } = await supabase
             .from('meal_plan')
             .select(`${PLAN_FULL_SELECT}, profile_has_meal_plan!inner(profile_id)`)
@@ -445,7 +466,7 @@ export const mealPlanService = {
      * @param {number} planId - Id del plan.
      */
     async assign(clientId, planId) {
-        if (isDemoClientId(clientId)) return;
+        if (isDemoClientId(clientId)) { assignDemoPlan(clientId, planId); return; }
         const { error } = await supabase
             .from('profile_has_meal_plan')
             .insert({ profile_id: clientId, meal_plan_id: planId });
@@ -462,6 +483,7 @@ export const mealPlanService = {
      * @param {number} planId - Id del plan.
      */
     async unassign(clientId, planId) {
+        if (isDemoClientId(clientId)) { unassignDemoPlan(clientId, planId); return; }
         const { error } = await supabase
             .from('profile_has_meal_plan')
             .delete()

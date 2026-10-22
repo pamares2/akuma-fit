@@ -1,4 +1,6 @@
 import { supabase } from '../supabaseClient.js';
+import { DEMO_CHAT_CLIENTS, isDemoClientId } from './feedbackService.js';
+import { buildDefaultDemoRoutines } from '../data/demoClientPlans.js';
 
 const ROUTINE_WITH_EXERCISES_SELECT = `
     *,
@@ -67,14 +69,26 @@ export const routineService = {
      * @returns {Promise<Array>} Lista de clientes.
      */
     async getClients() {
-        const { data, error } = await supabase
-            .from('profile')
-            .select('id, name, surname')
-            .eq('role', 'client')
-            .order('name');
+        let realClients = [];
+        try {
+            const { data, error } = await supabase
+                .from('profile')
+                .select('id, name, surname')
+                .eq('role', 'client')
+                .order('name');
+            if (!error && data) realClients = data;
+        } catch {
+            realClients = [];
+        }
 
-        if (error) throw new Error(error.message);
-        return data || [];
+        const demoClients = DEMO_CHAT_CLIENTS.map(c => ({
+            id: c.id,
+            name: c.name,
+            surname: c.surname,
+            isDemo: true,
+        }));
+
+        return [...realClients, ...demoClients];
     },
 
     /**
@@ -96,7 +110,7 @@ export const routineService = {
 
         if (routineError) throw new Error(routineError.message);
 
-        if (routineData.clientId) {
+        if (routineData.clientId && !isDemoClientId(routineData.clientId)) {
             const { error: assignError } = await supabase
                 .from('profile_has_routine')
                 .insert({
@@ -160,10 +174,14 @@ export const routineService = {
     /**
      * Obtiene las rutinas asignadas a un cliente, con ejercicios y series.
      *
-     * @param {number} clientId - Id del perfil del cliente.
+     * @param {number|string} clientId - Id del perfil del cliente.
      * @returns {Promise<Array>} Lista de rutinas.
      */
     async getByClient(clientId) {
+        if (isDemoClientId(clientId)) {
+            return buildDefaultDemoRoutines(clientId);
+        }
+
         const { data: routines, error } = await supabase
             .from('routine')
             .select(ROUTINES_BY_CLIENT_SELECT)

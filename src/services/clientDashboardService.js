@@ -1,10 +1,27 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
-import { feedbackService } from './feedbackService.js';
+import { feedbackService, isDemoClientId, getDemoClientById } from './feedbackService.js';
 
 export const clientDashboardService = {
     async getWeightData() {
         const profile = await getCurrentProfile();
+
+        if (isDemoClientId(profile.id)) {
+            const demo = getDemoClientById(profile.id);
+            const measurements = [...(demo?.measurements || [])].sort(
+                (a, b) => new Date(a.created_at) - new Date(b.created_at)
+            );
+            const current = measurements.length > 0 ? measurements[measurements.length - 1].weight : null;
+            const first = measurements.length > 0 ? measurements[0].weight : null;
+            const delta = current !== null && first !== null && current !== first
+                ? Math.round((current - first) * 10) / 10
+                : null;
+            const chartData = measurements.map(m => ({
+                date: new Date(m.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+                weight: Number(m.weight),
+            }));
+            return { current, delta, chartData };
+        }
 
         const { data, error } = await supabase
             .from('measurement')
@@ -37,6 +54,15 @@ export const clientDashboardService = {
 
     async getCheckInStats() {
         const profile = await getCurrentProfile();
+
+        if (isDemoClientId(profile.id)) {
+            const demo = getDemoClientById(profile.id);
+            return {
+                streak: demo?.checkIns?.length || 3,
+                dietAdherence: demo?.id === 'demo-client-2' ? 100 : 90,
+                trainingAdherence: 100,
+            };
+        }
 
         const { data, error } = await supabase
             .from('check_in')
@@ -99,6 +125,10 @@ export const clientDashboardService = {
     async getTrainingStats() {
         const profile = await getCurrentProfile();
 
+        if (isDemoClientId(profile.id)) {
+            return { completedThisWeek: profile.id === 'demo-client-2' ? 5 : 4 };
+        }
+
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -118,30 +148,31 @@ export const clientDashboardService = {
         const profile = await getCurrentProfile();
         const today = new Date().toISOString().split('T')[0];
 
-        const { data, error } = await supabase
-            .from('calendar_event')
-            .select('title, dtstart, start_time, event_type, freq')
-            .eq('profile_id', profile.id)
-            .eq('active', true)
-            .gte('dtstart', today)
-            .order('dtstart', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+        if (!isDemoClientId(profile.id)) {
+            const { data, error } = await supabase
+                .from('calendar_event')
+                .select('title, dtstart, start_time, event_type, freq')
+                .eq('profile_id', profile.id)
+                .eq('active', true)
+                .gte('dtstart', today)
+                .order('dtstart', { ascending: true })
+                .limit(1)
+                .maybeSingle();
 
-        if (error) throw new Error(error.message);
+            if (error) throw new Error(error.message);
 
-        if (data) {
-            return {
-                title: data.title,
-                date: data.dtstart,
-                time: data.start_time,
-                type: data.event_type,
-            };
+            if (data) {
+                return {
+                    title: data.title,
+                    date: data.dtstart,
+                    time: data.start_time,
+                    type: data.event_type,
+                };
+            }
         }
 
-        // Si no hay un evento futuro puntual, sugerir el próximo check-in dominical
         const now = new Date();
-        const dayOfWeek = now.getDay(); // 0 es domingo
+        const dayOfWeek = now.getDay();
         const daysUntilSunday = (7 - dayOfWeek) % 7 || 7;
         const nextSunday = new Date(now);
         nextSunday.setDate(now.getDate() + daysUntilSunday);
@@ -149,16 +180,19 @@ export const clientDashboardService = {
         return {
             title: 'Check-in semanal',
             date: nextSunday.toISOString().split('T')[0],
-            time: '20:00',
+            time: '10:00',
             type: 'check_in',
         };
     },
 
     async getLatestCoachFeedback() {
-        const profile = await getCurrentProfile();
-        const { messages } = await feedbackService.getFeedbackForClient(profile.id);
-        const coachMessages = (messages || []).filter(m => m.authorRole === 'coach');
-        if (coachMessages.length === 0) return null;
-        return coachMessages[coachMessages.length - 1];
+        try {
+            const profile = await getCurrentProfile();
+            const { messages } = await feedbackService.getFeedbackForClient(profile.id);
+            const coachMessages = (messages || []).filter(m => m.authorRole === 'coach');
+            return coachMessages.length > 0 ? coachMessages[coachMessages.length - 1] : null;
+        } catch {
+            return null;
+        }
     },
 };
