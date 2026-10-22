@@ -1,5 +1,6 @@
 /**
  * Servicio de Notificaciones Nativas y Alertas Web Push para Akuma Fit.
+ * Soporta dispositivos móviles (Android / iOS PWA) y escritorio (Windows / macOS / Chrome).
  */
 
 /**
@@ -15,8 +16,8 @@ export async function requestNotificationPermission() {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            sendSystemNotification('Akuma Fit Activo 🏋️', {
-                body: 'Notificaciones activadas. Recibirás avisos de mensajes y check-ins.',
+            await sendSystemNotification('Akuma Fit Activo 🏋️', {
+                body: '¡Notificaciones activadas! Recibirás los mensajes del entrenador aunque tengas la app minimizada.',
                 tag: 'akuma-welcome',
             });
         }
@@ -58,18 +59,20 @@ export function playNotificationChime() {
 }
 
 /**
- * Envía una notificación emergente nativa al dispositivo.
+ * Envía una notificación emergente nativa al dispositivo con soporte completo
+ * para Service Worker (Android, iOS PWA, Chrome, Windows y macOS).
  *
  * @param {string} title - Título de la notificación.
  * @param {Object} [options] - Opciones (cuerpo, icono, etiqueta).
+ * @returns {Promise<boolean>} True si se mostró con éxito.
  */
-export function sendSystemNotification(title, options = {}) {
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
+export async function sendSystemNotification(title, options = {}) {
+    if (typeof window === 'undefined' || !('Notification' in window)) return false;
+    if (Notification.permission !== 'granted') return false;
 
     playNotificationChime();
 
-    if (navigator.vibrate) {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
         try {
             navigator.vibrate([200, 100, 200]);
         } catch {
@@ -82,22 +85,54 @@ export function sendSystemNotification(title, options = {}) {
         badge: '/icons/icon-192.png',
         vibrate: [200, 100, 200],
         silent: false,
+        requireInteraction: false,
+        renotify: true,
+        data: {
+            url: options.url || '/app/feedback-chat',
+            ...options.data,
+        },
         ...options,
     };
 
-    try {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.ready
-                .then((registration) => {
-                    registration.showNotification(title, defaultOptions);
-                })
-                .catch(() => {
-                    new Notification(title, defaultOptions);
+    // 1. Prioridad: Service Worker (imprescindible en Android Chrome e iOS PWA para mostrar en pantalla)
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        try {
+            // Intentar primero con el registro activo actual
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg && typeof reg.showNotification === 'function') {
+                await reg.showNotification(title, defaultOptions);
+                return true;
+            }
+
+            // O esperar a que el service worker esté listo
+            if (navigator.serviceWorker.ready) {
+                const readyReg = await navigator.serviceWorker.ready;
+                if (readyReg && typeof readyReg.showNotification === 'function') {
+                    await readyReg.showNotification(title, defaultOptions);
+                    return true;
+                }
+            }
+
+            // O enviar mensaje al controlador del Service Worker
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SHOW_NOTIFICATION',
+                    title,
+                    options: defaultOptions,
                 });
-        } else {
-            new Notification(title, defaultOptions);
+                return true;
+            }
+        } catch (swErr) {
+            console.debug('Aviso ServiceWorker showNotification:', swErr);
         }
+    }
+
+    // 2. Fallback: Constructor Notification estándar (para navegadores de escritorio)
+    try {
+        new Notification(title, defaultOptions);
+        return true;
     } catch {
-        // Fallback silencioso si falla el constructor
+        // En Android Chrome new Notification() lanza TypeError, ya manejado por Service Worker
+        return false;
     }
 }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiBell, FiMessageSquare, FiClipboard, FiCheckCircle } from 'react-icons/fi';
-import { requestNotificationPermission } from '../../../utils/notificationService.js';
+import { FiBell, FiMessageSquare, FiClipboard, FiCheckCircle, FiPlay } from 'react-icons/fi';
+import { requestNotificationPermission, sendSystemNotification } from '../../../utils/notificationService.js';
 
 export default function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
@@ -24,6 +24,13 @@ export default function NotificationBell() {
     const handleRequestPush = async () => {
         const res = await requestNotificationPermission();
         setPushStatus(res);
+    };
+
+    const handleTestNotification = async () => {
+        await sendSystemNotification('Akuma Fit 🏋️ (Prueba)', {
+            body: '¡Excelente! Las notificaciones aparecen en tu pantalla y funcionan aunque minimices la app.',
+            tag: 'akuma-test-push',
+        });
     };
 
     return (
@@ -106,10 +113,10 @@ export default function NotificationBell() {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff' }}>
-                                    Chat 1 a 1 en directo
+                                    Chat 1 a 1 en Directo
                                 </div>
                                 <div style={{ fontSize: '0.75rem', color: '#9aa0a6', marginTop: '0.15rem' }}>
-                                    Comunicación instantánea con tu entrenador.
+                                    Mensajería instantánea y resolución de dudas con el coach.
                                 </div>
                             </div>
                         </div>
@@ -145,9 +152,31 @@ export default function NotificationBell() {
                         {/* Control de Notificaciones Push Nativas */}
                         <div style={{ padding: '0.8rem 1rem', background: 'rgba(0,0,0,0.2)' }}>
                             {pushStatus === 'granted' ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', fontSize: '0.75rem', fontWeight: 600 }}>
-                                    <FiCheckCircle size={14} />
-                                    <span>Notificaciones Web Push activadas en tu dispositivo</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', fontSize: '0.75rem', fontWeight: 600 }}>
+                                        <FiCheckCircle size={14} />
+                                        <span>Notificaciones activas en pantalla</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleTestNotification}
+                                        style={{
+                                            padding: '0.35rem 0.6rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(255,255,255,0.15)',
+                                            background: 'rgba(255,255,255,0.06)',
+                                            color: '#fff',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.3rem',
+                                        }}
+                                    >
+                                        <FiPlay size={10} /> Probar aviso emergente ahora
+                                    </button>
                                 </div>
                             ) : (
                                 <button
@@ -165,7 +194,7 @@ export default function NotificationBell() {
                                         cursor: 'pointer',
                                     }}
                                 >
-                                    🔔 Activar notificaciones en el móvil
+                                    🔔 Activar notificaciones en el móvil y PC
                                 </button>
                             )}
                         </div>
