@@ -395,6 +395,29 @@ export default function Clients() {
                                     </Link>
 
                                     <Link
+                                        to={`/app/plans?clientId=${client.id}`}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.45rem',
+                                            fontSize: '0.8rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(245, 158, 11, 0.45)',
+                                            background: 'rgba(245, 158, 11, 0.12)',
+                                            color: '#ffffff',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.25rem',
+                                            textDecoration: 'none',
+                                            fontWeight: 600,
+                                        }}
+                                        title="Editar, asignar y progresar las rutinas y cargas de este cliente"
+                                    >
+                                        <FiActivity /> Rutinas
+                                    </Link>
+
+                                    <Link
                                         to={`/app/dietas/new?clientId=${client.id}`}
                                         style={{
                                             flex: 1,

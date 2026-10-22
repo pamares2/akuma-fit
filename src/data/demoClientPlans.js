@@ -362,13 +362,16 @@ function writeCustomDemoRoutinesMap(map) {
  */
 export function saveCustomDemoRoutine(clientId, routine) {
     if (!isDemoClientId(clientId)) return null;
+    if (routine.id) {
+        return updateCustomDemoRoutine(clientId, routine.id, routine);
+    }
     const map = readCustomDemoRoutinesMap();
     const list = Array.isArray(map[clientId]) ? map[clientId] : [];
     const created = {
-        id: routine.id || `demo-routine-custom-${Date.now()}`,
+        id: `demo-routine-custom-${Date.now()}`,
         title: routine.title,
         coach_comment: routine.coach_comment || routine.coachComment || '',
-        created_at: routine.created_at || new Date().toISOString(),
+        created_at: new Date().toISOString(),
         exercises: (routine.exercises || []).map((ex, idx) => ({
             id: ex.id || `ex-custom-${idx + 1}`,
             exercise_name: ex.exercise_name || ex.name || `Ejercicio ${idx + 1}`,
@@ -378,8 +381,8 @@ export function saveCustomDemoRoutine(clientId, routine) {
             sets: (ex.sets || []).map((s, sIdx) => ({
                 id: s.id || `set-custom-${idx + 1}-${sIdx + 1}`,
                 order: s.order || sIdx + 1,
-                reps: s.reps || '10',
-                kg: s.kg || '20',
+                reps: String(s.reps ?? '10'),
+                kg: String(s.kg ?? '20'),
                 type: s.type || 'Normal',
                 rest_time: s.rest_time || '90s',
             })),
@@ -391,26 +394,69 @@ export function saveCustomDemoRoutine(clientId, routine) {
 }
 
 /**
- * Elimina una rutina personalizada de un cliente de prueba.
+ * Actualiza una rutina (título, comentario del coach, ejercicios, kilos y repeticiones)
+ * para progresar al cliente de prueba.
+ */
+export function updateCustomDemoRoutine(clientId, routineId, routineData) {
+    if (!isDemoClientId(clientId)) return null;
+    const map = readCustomDemoRoutinesMap();
+    const list = Array.isArray(map[clientId]) ? [...map[clientId]] : [];
+
+    const updated = {
+        id: routineId,
+        title: routineData.title,
+        coach_comment: routineData.coach_comment ?? routineData.coachComment ?? '',
+        created_at: routineData.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        exercises: (routineData.exercises || []).map((ex, idx) => ({
+            id: ex.id || `ex-custom-${idx + 1}`,
+            exercise_name: ex.exercise_name || ex.name || `Ejercicio ${idx + 1}`,
+            category: ex.category || 'Fuerza',
+            description: ex.description || '',
+            comments: ex.comments || '',
+            sets: (ex.sets || []).map((s, sIdx) => ({
+                id: s.id || `set-custom-${idx + 1}-${sIdx + 1}`,
+                order: s.order || sIdx + 1,
+                reps: String(s.reps ?? ''),
+                kg: String(s.kg ?? ''),
+                type: s.type || 'Normal',
+                rest_time: s.rest_time || '90s',
+            })),
+        })),
+    };
+
+    const existingIdx = list.findIndex(r => String(r.id) === String(routineId));
+    if (existingIdx >= 0) {
+        list[existingIdx] = updated;
+    } else {
+        list.unshift(updated);
+    }
+    map[clientId] = list;
+    writeCustomDemoRoutinesMap(map);
+    return updated;
+}
+
+/**
+ * Elimina una rutina personalizada o predefinida de un cliente de prueba.
  */
 export function removeCustomDemoRoutine(clientId, routineId) {
     if (!isDemoClientId(clientId)) return;
     const map = readCustomDemoRoutinesMap();
-    const list = Array.isArray(map[clientId]) ? map[clientId] : [];
-    map[clientId] = list.filter(r => String(r.id) !== String(routineId));
+    const list = Array.isArray(map[clientId]) ? [...map[clientId]] : [];
+    const filtered = list.filter(r => String(r.id) !== String(routineId));
+    filtered.push({ id: routineId, _deleted: true });
+    map[clientId] = filtered;
     writeCustomDemoRoutinesMap(map);
 }
 
 /**
- * Rutinas de entrenamiento preasignadas para los clientes de prueba + las creadas por el coach.
+ * Rutinas de entrenamiento preasignadas para los clientes de prueba + las creadas/editadas por el coach.
  */
 export function buildDefaultDemoRoutines(clientId) {
     const customMap = readCustomDemoRoutinesMap();
     const customRoutines = Array.isArray(customMap[clientId]) ? customMap[clientId] : [];
 
-    if (clientId === 'demo-client-2') {
-        return [
-            ...customRoutines,
+    const defaultRoutines = clientId === 'demo-client-2' ? [
             {
                 id: 'demo-routine-laura-1',
                 title: 'Día 1 — Énfasis Glúteo e Isquios (Fuerza)',
@@ -484,85 +530,97 @@ export function buildDefaultDemoRoutines(clientId) {
                     }
                 ]
             }
+        ] : [
+            {
+                id: 'demo-routine-carlos-1',
+                title: 'Día A — Torso Hipertrofia (Pecho + Espalda)',
+                coach_comment: 'Mantener cargas pesadas a RIR 1-2 para preservar toda la masa muscular durante la fase de definición.',
+                created_at: '2026-10-04T10:00:00.000Z',
+                exercises: [
+                    {
+                        id: 'ex-carlos-1',
+                        exercise_name: 'Press Banca Inclinado con Mancuernas',
+                        category: 'Pecho',
+                        description: 'Banco a 30 grados. Bajada controlada de 2 segundos y empuje explosivo.',
+                        comments: 'Codos a 45° para proteger el hombro derecho.',
+                        sets: [
+                            { id: 's-c1', order: 1, reps: '10', kg: '30', type: 'Calentamiento', rest_time: '90s' },
+                            { id: 's-c2', order: 2, reps: '8', kg: '36', type: 'Efectiva', rest_time: '120s' },
+                            { id: 's-c3', order: 3, reps: '8', kg: '36', type: 'Efectiva', rest_time: '120s' },
+                        ]
+                    },
+                    {
+                        id: 'ex-carlos-2',
+                        exercise_name: 'Remo con Barra Prono (Pendlay)',
+                        category: 'Espalda',
+                        description: 'Tracción horizontal explosiva hacia la boca del estómago.',
+                        comments: 'Mantener core firme y espalda neutra.',
+                        sets: [
+                            { id: 's-c4', order: 1, reps: '8', kg: '80', type: 'Efectiva', rest_time: '120s' },
+                            { id: 's-c5', order: 2, reps: '8', kg: '85', type: 'Efectiva', rest_time: '120s' },
+                            { id: 's-c6', order: 3, reps: '8', kg: '85', type: 'Efectiva', rest_time: '120s' },
+                        ]
+                    },
+                    {
+                        id: 'ex-carlos-3',
+                        exercise_name: 'Dominadas Lastradas / Peso Corporal',
+                        category: 'Espalda',
+                        description: 'Rango completo pasando la barbilla por encima de la barra.',
+                        sets: [
+                            { id: 's-c7', order: 1, reps: '10', kg: '10', type: 'Efectiva', rest_time: '90s' },
+                            { id: 's-c8', order: 2, reps: '9', kg: '10', type: 'Efectiva', rest_time: '90s' },
+                            { id: 's-c9', order: 3, reps: '8', kg: '10', type: 'Efectiva', rest_time: '90s' },
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'demo-routine-carlos-2',
+                title: 'Día B — Pierna Completa + Core',
+                coach_comment: 'Hidratarte bien antes de empezar y tomar la tortita de arroz extra 45 min antes.',
+                created_at: '2026-10-04T10:10:00.000Z',
+                exercises: [
+                    {
+                        id: 'ex-carlos-4',
+                        exercise_name: 'Sentadilla Hack / Prensa 45°',
+                        category: 'Pierna',
+                        description: 'Profundidad máxima sin despegar el sacro del respaldo.',
+                        sets: [
+                            { id: 's-c10', order: 1, reps: '10', kg: '160', type: 'Efectiva', rest_time: '120s' },
+                            { id: 's-c11', order: 2, reps: '8', kg: '180', type: 'Efectiva', rest_time: '120s' },
+                            { id: 's-c12', order: 3, reps: '8', kg: '180', type: 'Efectiva', rest_time: '120s' },
+                        ]
+                    },
+                    {
+                        id: 'ex-carlos-5',
+                        exercise_name: 'Curl Femoral Sentado',
+                        category: 'Pierna',
+                        description: 'Pausa de 1 segundo en máxima contracción.',
+                        sets: [
+                            { id: 's-c13', order: 1, reps: '12', kg: '65', type: 'Efectiva', rest_time: '90s' },
+                            { id: 's-c14', order: 2, reps: '12', kg: '65', type: 'Efectiva', rest_time: '90s' },
+                            { id: 's-c15', order: 3, reps: '10', kg: '70', type: 'Efectiva', rest_time: '90s' },
+                        ]
+                    }
+                ]
+            }
         ];
-    }
 
-    return [
-        ...customRoutines,
-        {
-            id: 'demo-routine-carlos-1',
-            title: 'Día A — Torso Hipertrofia (Pecho + Espalda)',
-            coach_comment: 'Mantener cargas pesadas a RIR 1-2 para preservar toda la masa muscular durante la fase de definición.',
-            created_at: '2026-10-04T10:00:00.000Z',
-            exercises: [
-                {
-                    id: 'ex-carlos-1',
-                    exercise_name: 'Press Banca Inclinado con Mancuernas',
-                    category: 'Pecho',
-                    description: 'Banco a 30 grados. Bajada controlada de 2 segundos y empuje explosivo.',
-                    comments: 'Codos a 45° para proteger el hombro derecho.',
-                    sets: [
-                        { id: 's-c1', order: 1, reps: '10', kg: '30', type: 'Calentamiento', rest_time: '90s' },
-                        { id: 's-c2', order: 2, reps: '8', kg: '36', type: 'Efectiva', rest_time: '120s' },
-                        { id: 's-c3', order: 3, reps: '8', kg: '36', type: 'Efectiva', rest_time: '120s' },
-                    ]
-                },
-                {
-                    id: 'ex-carlos-2',
-                    exercise_name: 'Remo con Barra Prono (Pendlay)',
-                    category: 'Espalda',
-                    description: 'Tracción horizontal explosiva hacia la boca del estómago.',
-                    comments: 'Mantener core firme y espalda neutra.',
-                    sets: [
-                        { id: 's-c4', order: 1, reps: '8', kg: '80', type: 'Efectiva', rest_time: '120s' },
-                        { id: 's-c5', order: 2, reps: '8', kg: '85', type: 'Efectiva', rest_time: '120s' },
-                        { id: 's-c6', order: 3, reps: '8', kg: '85', type: 'Efectiva', rest_time: '120s' },
-                    ]
-                },
-                {
-                    id: 'ex-carlos-3',
-                    exercise_name: 'Dominadas Lastradas / Peso Corporal',
-                    category: 'Espalda',
-                    description: 'Rango completo pasando la barbilla por encima de la barra.',
-                    sets: [
-                        { id: 's-c7', order: 1, reps: '10', kg: '10', type: 'Efectiva', rest_time: '90s' },
-                        { id: 's-c8', order: 2, reps: '9', kg: '10', type: 'Efectiva', rest_time: '90s' },
-                        { id: 's-c9', order: 3, reps: '8', kg: '10', type: 'Efectiva', rest_time: '90s' },
-                    ]
-                }
-            ]
-        },
-        {
-            id: 'demo-routine-carlos-2',
-            title: 'Día B — Pierna Completa + Core',
-            coach_comment: 'Hidratarte bien antes de empezar y tomar la tortita de arroz extra 45 min antes.',
-            created_at: '2026-10-04T10:10:00.000Z',
-            exercises: [
-                {
-                    id: 'ex-carlos-4',
-                    exercise_name: 'Sentadilla Hack / Prensa 45°',
-                    category: 'Pierna',
-                    description: 'Profundidad máxima sin despegar el sacro del respaldo.',
-                    sets: [
-                        { id: 's-c10', order: 1, reps: '10', kg: '160', type: 'Efectiva', rest_time: '120s' },
-                        { id: 's-c11', order: 2, reps: '8', kg: '180', type: 'Efectiva', rest_time: '120s' },
-                        { id: 's-c12', order: 3, reps: '8', kg: '180', type: 'Efectiva', rest_time: '120s' },
-                    ]
-                },
-                {
-                    id: 'ex-carlos-5',
-                    exercise_name: 'Curl Femoral Sentado',
-                    category: 'Pierna',
-                    description: 'Pausa de 1 segundo en máxima contracción.',
-                    sets: [
-                        { id: 's-c13', order: 1, reps: '12', kg: '65', type: 'Efectiva', rest_time: '90s' },
-                        { id: 's-c14', order: 2, reps: '12', kg: '65', type: 'Efectiva', rest_time: '90s' },
-                        { id: 's-c15', order: 3, reps: '10', kg: '70', type: 'Efectiva', rest_time: '90s' },
-                    ]
-                }
-            ]
-        }
-    ];
+    const activeCustomRoutines = customRoutines.filter(r => !r._deleted);
+    const deletedIds = new Set(customRoutines.filter(r => r._deleted).map(r => String(r.id)));
+
+    const mergedDefaults = defaultRoutines
+        .filter(def => !deletedIds.has(String(def.id)))
+        .map(def => {
+            const override = activeCustomRoutines.find(c => String(c.id) === String(def.id));
+            return override || def;
+        });
+
+    const extraCustomRoutines = activeCustomRoutines.filter(
+        c => !defaultRoutines.some(d => String(d.id) === String(c.id))
+    );
+
+    return [...extraCustomRoutines, ...mergedDefaults];
 }
 
 /**

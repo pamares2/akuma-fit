@@ -3,6 +3,7 @@ import { DEMO_CHAT_CLIENTS, isDemoClientId } from './feedbackService.js';
 import {
     buildDefaultDemoRoutines,
     saveCustomDemoRoutine,
+    updateCustomDemoRoutine,
     removeCustomDemoRoutine,
     getDemoRoutineById,
 } from '../data/demoClientPlans.js';
@@ -178,6 +179,131 @@ export const routineService = {
         }
 
         return routine;
+    },
+
+    /**
+     * Actualiza una rutina existente (título, comentario del coach, ejercicios y series progresadas).
+     *
+     * @param {number|string} routineId - Id de la rutina a actualizar.
+     * @param {Object} routineData - Datos actualizados (title, coachComment, clientId, exercises).
+     * @returns {Promise<Object>} Rutina actualizada.
+     */
+    async update(routineId, routineData) {
+        if (String(routineId).startsWith('demo-') || (routineData.clientId && isDemoClientId(routineData.clientId))) {
+            return updateCustomDemoRoutine(routineData.clientId, routineId, routineData);
+        }
+
+        // 1. Actualizar rutina
+        const { data: routine, error: routineError } = await supabase
+            .from('routine')
+            .update({
+                title: routineData.title,
+                coach_comment: routineData.coachComment,
+            })
+            .eq('id', routineId)
+            .select()
+            .single();
+
+        if (routineError) throw new Error(routineError.message);
+
+        // 2. Si se especifica un cliente, actualizar relación
+        if (routineData.clientId && !isDemoClientId(routineData.clientId)) {
+            const { data: currentLinks } = await supabase
+                .from('profile_has_routine')
+                .select('id, profile')
+                .eq('routine', routineId);
+
+            const hasCurrent = (currentLinks || []).some(l => String(l.profile) === String(routineData.clientId));
+            if (!hasCurrent) {
+                await supabase
+                    .from('profile_has_routine')
+                    .delete()
+                    .eq('routine', routineId);
+
+                await supabase
+                    .from('profile_has_routine')
+                    .insert({
+                        profile: routineData.clientId,
+                        routine: routineId,
+                    });
+            }
+        }
+
+        // 3. Reemplazar ejercicios y series de la rutina
+        const exercises = routineData.exercises || [];
+
+        // Eliminar relaciones de ejercicios anteriores
+        await supabase
+            .from('routine_has_exercise_template')
+            .delete()
+            .eq('routine', routineId);
+
+        if (exercises.length > 0) {
+            const { error: relError } = await supabase
+                .from('routine_has_exercise_template')
+                .insert(exercises.map((exercise, index) => ({
+                    routine: routineId,
+                    exercise_template: exercise.id,
+                    position: index + 1,
+                })));
+
+            if (relError) throw new Error(relError.message);
+
+            const exerciseIdsBySet = [];
+            const setRows = exercises.flatMap(exercise =>
+                (exercise.sets || []).map(set => {
+                    exerciseIdsBySet.push(exercise.id);
+                    return {
+                        order: set.order,
+                        reps: String(set.reps || ''),
+                        kg: set.kg != null ? String(set.kg) : null,
+                        type: set.type || 'Normal',
+                    };
+                })
+            );
+
+            if (setRows.length > 0) {
+                const { data: createdSets, error: setError } = await supabase
+                    .from('set_template')
+                    .insert(setRows)
+                    .select();
+
+                if (setError) throw new Error(setError.message);
+
+                const links = createdSets.map((setTemplate, index) => ({
+                    exercise_template: exerciseIdsBySet[index],
+                    set_template: setTemplate.id,
+                }));
+
+                const { error: linkError } = await supabase
+                    .from('exercise_template_has_set_template')
+                    .insert(links);
+
+                if (linkError) throw new Error(linkError.message);
+            }
+        }
+
+        return routine;
+    },
+
+    /**
+     * Elimina una rutina y sus relaciones asociadas.
+     *
+     * @param {number|string} routineId - Id de la rutina.
+     * @param {number|string} [clientId] - Id del cliente si es de prueba.
+     * @returns {Promise<boolean>}
+     */
+    async delete(routineId, clientId) {
+        if (String(routineId).startsWith('demo-') || (clientId && isDemoClientId(clientId))) {
+            removeCustomDemoRoutine(clientId, routineId);
+            return true;
+        }
+
+        await supabase.from('profile_has_routine').delete().eq('routine', routineId);
+        await supabase.from('routine_has_exercise_template').delete().eq('routine', routineId);
+        const { error } = await supabase.from('routine').delete().eq('id', routineId);
+        if (error) throw new Error(error.message);
+        return true;
     },
 
     /**
