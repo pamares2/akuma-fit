@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
+import { sendSystemNotification } from '../utils/notificationService.js';
 
 const isTestEnv = (typeof globalThis !== 'undefined' && globalThis?.process?.env?.NODE_ENV === 'test')
     || (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test');
@@ -1079,12 +1080,13 @@ export const feedbackService = {
                     if (!rawPayload) return;
                     const msgTargetId = String(rawPayload.clientProfileId || '');
                     if (targetId === 'all' || msgTargetId === targetId) {
+                        const incoming = rawPayload.payload;
+
                         // Si es cliente demo, persistir de inmediato en el almacén local del dispositivo receptor
-                        if (isDemoClientId(msgTargetId) && rawPayload.payload) {
+                        if (isDemoClientId(msgTargetId) && incoming) {
                             try {
                                 const store = loadDemoStore();
                                 const list = store[msgTargetId] || [];
-                                const incoming = rawPayload.payload;
                                 if (!list.some(m => (m.rowId && m.rowId === incoming.rowId) || (m.createdAt === incoming.createdAt && m.text === incoming.text))) {
                                     store[msgTargetId] = [...list, incoming];
                                     saveDemoStore(store);
@@ -1093,6 +1095,15 @@ export const feedbackService = {
                                 // no-op
                             }
                         }
+
+                        // Disparar notificación emergente si la app está en segundo plano o el móvil bloqueado
+                        if (incoming && incoming.text && typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+                            sendSystemNotification(`💬 ${incoming.authorName || 'Akuma Fit'}:`, {
+                                body: incoming.text,
+                                tag: `chat-${incoming.rowId || Date.now()}`,
+                            });
+                        }
+
                         onNewEvent(rawPayload.payload);
                     }
                 };

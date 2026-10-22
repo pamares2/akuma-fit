@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiBell, FiMessageSquare, FiClipboard, FiCheckCircle } from 'react-icons/fi';
+import { requestNotificationPermission } from '../../../utils/notificationService.js';
 
 export default function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
@@ -20,21 +21,9 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const requestPushPermission = async () => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            try {
-                const res = await Notification.requestPermission();
-                setPushStatus(res);
-                if (res === 'granted') {
-                    new Notification('Akuma Fit Activo 🏋️', {
-                        body: 'Notificaciones activadas. Recibirás avisos de mensajes y check-ins.',
-                        icon: '/icons/icon-192.png',
-                    });
-                }
-            } catch {
-                // no-op
-            }
-        }
+    const handleRequestPush = async () => {
+        const res = await requestNotificationPermission();
+        setPushStatus(res);
     };
 
     return (
@@ -163,7 +152,7 @@ export default function NotificationBell() {
                             ) : (
                                 <button
                                     type="button"
-                                    onClick={requestPushPermission}
+                                    onClick={handleRequestPush}
                                     style={{
                                         width: '100%',
                                         padding: '0.45rem',

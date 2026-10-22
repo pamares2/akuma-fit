@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { FiClock, FiPlus, FiX, FiPlay, FiPause } from 'react-icons/fi';
+import { sendSystemNotification } from '../../utils/notificationService.js';
 
 /**
  * Reproduce un pitido suave usando la Web Audio API nativa sin requerir assets externos.
@@ -44,6 +45,10 @@ export default function RestTimer() {
                         clearInterval(timerRef.current);
                         setIsRunning(false);
                         playBeep();
+                        sendSystemNotification('¡Descanso completado! 💪', {
+                            body: 'Es hora de comenzar tu siguiente serie en Akuma Fit.',
+                            tag: 'akuma-rest-timer',
+                        });
                         return 0;
                     }
                     return prev - 1;
