@@ -1,7 +1,55 @@
-import { supabase } from '../supabaseClient.js';
+import { supabase, publicSupabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 
 const BUCKET_NAME = 'exercise-video';
+
+const EXERCISE_SELECT_WITH_TAGS = `
+    *,
+    exercise_template_has_tag (
+        tag:tag (
+            id,
+            name,
+            category
+        )
+    )
+`;
+
+function mapAndDeduplicateExercises(rows) {
+    if (!rows || rows.length === 0) return [];
+
+    const mapped = rows.map(exercise => ({
+        ...exercise,
+        tags: exercise.exercise_template_has_tag?.map(item => item.tag).filter(Boolean) || [],
+    }));
+
+    const byName = new Map();
+    for (const ex of mapped) {
+        const key = (ex.exercise_name || '').trim().toLowerCase();
+        const existing = byName.get(key);
+        if (!existing || (ex.tags.length > existing.tags.length)) {
+            byName.set(key, ex);
+        }
+    }
+
+    return Array.from(byName.values());
+}
+
+async function fetchExercisesFromClient(client, filters = {}, includeTags = true) {
+    let query = client
+        .from('exercise_template')
+        .select(includeTags ? EXERCISE_SELECT_WITH_TAGS : '*')
+        .order('exercise_name');
+
+    if (filters.text) {
+        query = query.or(`exercise_name.ilike.%${filters.text}%,description.ilike.%${filters.text}%`);
+    }
+
+    if (filters.category) {
+        query = query.eq('category', filters.category);
+    }
+
+    return query;
+}
 
 /**
  * Servicio de acceso a datos de los ejercicios (`exercise_template`) y sus
@@ -63,26 +111,7 @@ export const exerciseService = {
      * @returns {Promise<Array>} Lista de ejercicios.
      */
     async getAll() {
-        const { data, error } = await supabase
-            .from('exercise_template')
-            .select(`
-                *,
-                exercise_template_has_tag (
-                    tag:tag (
-                        id,
-                        name,
-                        category
-                    )
-                )
-            `)
-            .order('exercise_name');
-
-        if (error) throw new Error(error.message);
-
-        return data?.map(exercise => ({
-            ...exercise,
-            tags: exercise.exercise_template_has_tag?.map(item => item.tag).filter(Boolean) || [],
-        })) || [];
+        return this.search({});
     },
 
     /**
@@ -92,20 +121,23 @@ export const exerciseService = {
      * @returns {Promise<Object>} Ejercicio.
      */
     async getById(exerciseId) {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('exercise_template')
-            .select(`
-                *,
-                exercise_template_has_tag (
-                    tag:tag (
-                        id,
-                        name,
-                        category
-                    )
-                )
-            `)
+            .select(EXERCISE_SELECT_WITH_TAGS)
             .eq('id', exerciseId)
             .single();
+
+        if (error || !data) {
+            const pubRes = await publicSupabase
+                .from('exercise_template')
+                .select(EXERCISE_SELECT_WITH_TAGS)
+                .eq('id', exerciseId)
+                .single();
+            if (!pubRes.error && pubRes.data) {
+                data = pubRes.data;
+                error = null;
+            }
+        }
 
         if (error) throw new Error(error.message);
 
@@ -122,63 +154,44 @@ export const exerciseService = {
      * @returns {Promise<Array>} Lista de ejercicios filtrados.
      */
     async search(filters = {}) {
-        let query = supabase
-            .from('exercise_template')
-            .select(`
-                *,
-                exercise_template_has_tag (
-                    tag:tag (
-                        id,
-                        name,
-                        category
-                    )
-                )
-            `)
-            .order('exercise_name');
+        let { data, error } = await fetchExercisesFromClient(supabase, filters, true);
 
-        if (filters.text) {
-            query = query.or(`exercise_name.ilike.%${filters.text}%,description.ilike.%${filters.text}%`);
+        // Si las políticas RLS de usuario autenticado devuelven vacío o error,
+        // consultar mediante el cliente público sin sesión (lectura global del catálogo)
+        if (error || !data || data.length === 0) {
+            const pubWithTags = await fetchExercisesFromClient(publicSupabase, filters, true);
+            if (!pubWithTags.error && pubWithTags.data && pubWithTags.data.length > 0) {
+                data = pubWithTags.data;
+                error = null;
+            }
         }
 
-        if (filters.category) {
-            query = query.eq('category', filters.category);
+        // Fallback adicional sin relación anidada de tags si la tabla puente fallara
+        if (error || !data) {
+            const fallbackAuth = await fetchExercisesFromClient(supabase, filters, false);
+            if (!fallbackAuth.error && fallbackAuth.data && fallbackAuth.data.length > 0) {
+                data = fallbackAuth.data;
+                error = null;
+            } else {
+                const fallbackPub = await fetchExercisesFromClient(publicSupabase, filters, false);
+                if (!fallbackPub.error && fallbackPub.data) {
+                    data = fallbackPub.data;
+                    error = null;
+                }
+            }
         }
+
+        if (error) throw new Error(error.message);
+
+        let results = mapAndDeduplicateExercises(data);
 
         if (filters.tags && filters.tags.length > 0) {
-            query = query.in('exercise_template_has_tag.tag', filters.tags);
+            results = results.filter(ex =>
+                ex.tags.some(tag => filters.tags.includes(tag.id))
+            );
         }
 
-        let { data, error } = await query;
-
-        // Fallback robusto si la consulta anidada con tags fallara
-        if (error) {
-            console.warn('Reintentando consulta directa sin tags:', error);
-            let fallbackQuery = supabase
-                .from('exercise_template')
-                .select('*')
-                .order('exercise_name');
-
-            if (filters.text) {
-                fallbackQuery = fallbackQuery.or(`exercise_name.ilike.%${filters.text}%,description.ilike.%${filters.text}%`);
-            }
-            if (filters.category) {
-                fallbackQuery = fallbackQuery.eq('category', filters.category);
-            }
-
-            const fallbackRes = await fallbackQuery;
-            if (!fallbackRes.error && fallbackRes.data) {
-                return fallbackRes.data.map(exercise => ({
-                    ...exercise,
-                    tags: [],
-                }));
-            }
-            throw new Error(error.message);
-        }
-
-        return data?.map(exercise => ({
-            ...exercise,
-            tags: exercise.exercise_template_has_tag?.map(item => item.tag).filter(Boolean) || [],
-        })) || [];
+        return results;
     },
 
     /**

@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient.js';
+import { supabase, publicSupabase } from '../supabaseClient.js';
 
 /**
  * Servicio de acceso a datos de las etiquetas (`tag`) y sus relaciones con
@@ -11,10 +11,21 @@ export const tagService = {
      * @returns {Promise<Array>} Lista de etiquetas.
      */
     async getAll() {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('tag')
             .select('*')
             .order('name');
+
+        if (error || !data || data.length === 0) {
+            const pubRes = await publicSupabase
+                .from('tag')
+                .select('*')
+                .order('name');
+            if (!pubRes.error && pubRes.data && pubRes.data.length > 0) {
+                data = pubRes.data;
+                error = null;
+            }
+        }
 
         if (error) throw new Error(error.message);
         return data || [];
@@ -56,7 +67,7 @@ export const tagService = {
      * @returns {Promise<Array>} Lista de etiquetas.
      */
     async getByExercise(exerciseId) {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('exercise_template_has_tag')
             .select(`
                 tag:tag (
@@ -66,6 +77,23 @@ export const tagService = {
                 )
             `)
             .eq('exercise_template', exerciseId);
+
+        if (error || !data || data.length === 0) {
+            const pubRes = await publicSupabase
+                .from('exercise_template_has_tag')
+                .select(`
+                    tag:tag (
+                        id,
+                        name,
+                        category
+                    )
+                `)
+                .eq('exercise_template', exerciseId);
+            if (!pubRes.error && pubRes.data) {
+                data = pubRes.data;
+                error = null;
+            }
+        }
 
         if (error) throw new Error(error.message);
         return data?.map(item => item.tag).filter(Boolean) || [];
