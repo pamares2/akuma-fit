@@ -39,7 +39,7 @@ describe('routineService - Progresión y Edición de Rutinas', () => {
         const torso = originalRoutines.find(r => r.id === 'demo-routine-carlos-1');
         expect(torso).toBeDefined();
 
-        // El coach progresa las cargas: sube el press banca de 36kg a 40kg y actualiza notas
+        // El coach progresa las cargas: sube el press banca de 36kg a 40kg, asigna RIR 1 y actualiza notas
         const updatedExercises = torso.exercises.map((ex) => {
             if (ex.exercise_name.includes('Press Banca')) {
                 return {
@@ -48,6 +48,7 @@ describe('routineService - Progresión y Edición de Rutinas', () => {
                         ...s,
                         kg: '40', // Sobrecarga progresiva
                         reps: '8',
+                        rir: '1', // RIR asignado
                     })),
                 };
             }
@@ -61,7 +62,7 @@ describe('routineService - Progresión y Edición de Rutinas', () => {
             exercises: updatedExercises,
         });
 
-        // Verificamos que al consultar de nuevo por cliente, la rutina tenga las nuevas cargas
+        // Verificamos que al consultar de nuevo por cliente, la rutina tenga las nuevas cargas y RIR
         const refreshedRoutines = await routineService.getByClient('demo-client-1');
         const refreshedTorso = refreshedRoutines.find(r => r.id === 'demo-routine-carlos-1');
         expect(refreshedTorso).toBeDefined();
@@ -70,11 +71,13 @@ describe('routineService - Progresión y Edición de Rutinas', () => {
 
         const pressBanca = refreshedTorso.exercises.find(e => e.exercise_name.includes('Press Banca'));
         expect(pressBanca.sets[0].kg).toBe('40');
+        expect(pressBanca.sets[0].rir).toBe('1');
 
         // Verificamos getById
         const fetchedById = await routineService.getById('demo-routine-carlos-1');
         expect(fetchedById.title).toBe('Día A — Torso Hipertrofia (Semana 2 - Progresión)');
         expect(fetchedById.coach_comment).toContain('Subimos a 40kg');
+        expect(fetchedById.exercises[0].sets[0].rir).toBe('1');
     });
 
     it('debe permitir eliminar una rutina de un cliente', async () => {

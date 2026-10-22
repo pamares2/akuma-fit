@@ -92,22 +92,40 @@ function MyPlan() {
 
                         {sets.length > 0 && (
                             <div className="exercise-detail-section">
-                                <h3 className="exercise-detail-subtitle">Series</h3>
-                                <div className="sets-table">
-                                    <div className="sets-table-header">
-                                        <span className="set-col-order">#</span>
-                                        <span className="set-col-reps">Reps</span>
-                                        <span className="set-col-kg">Kg</span>
-                                        <span className="set-col-type">Tipo</span>
-                                    </div>
-                                    {sets.map((set) => (
-                                        <div key={set.id} className="sets-table-row">
-                                            <span className="set-col-order set-order-number">{set.order}</span>
-                                            <span className="set-col-reps">{set.reps}</span>
-                                            <span className="set-col-kg">{set.kg || '-'}</span>
-                                            <span className="set-col-type">{set.type}</span>
+                                <h3 className="exercise-detail-subtitle">Series & Cargas</h3>
+                                <div className="sets-table-container">
+                                    <div className="sets-table sets-table-5col">
+                                        <div className="sets-table-header">
+                                            <span className="set-col-order">#</span>
+                                            <span className="set-col-reps">Reps</span>
+                                            <span className="set-col-kg">Kg</span>
+                                            <span className="set-col-rir" title="Repeticiones en Reserva">RIR</span>
+                                            <span className="set-col-type">Tipo</span>
                                         </div>
-                                    ))}
+                                        {sets.map((set) => (
+                                            <div key={set.id} className="sets-table-row">
+                                                <span className="set-col-order set-order-number">{set.order}</span>
+                                                <span className="set-col-reps">{set.reps}</span>
+                                                <span className="set-col-kg">{set.kg ? `${set.kg} kg` : '—'}</span>
+                                                <span className="set-col-rir">
+                                                    {set.rir ? (
+                                                        <span style={{
+                                                            background: 'rgba(230, 57, 70, 0.15)',
+                                                            color: 'var(--color-primary, #e63946)',
+                                                            padding: '0.15rem 0.45rem',
+                                                            borderRadius: '4px',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.78rem',
+                                                            display: 'inline-block',
+                                                        }}>
+                                                            RIR {set.rir}
+                                                        </span>
+                                                    ) : '—'}
+                                                </span>
+                                                <span className="set-col-type">{set.type}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}

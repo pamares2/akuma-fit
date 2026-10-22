@@ -288,12 +288,25 @@
     }
 
     .header {
-        padding: var(--space-md) var(--space-lg);
+        padding: 0.5rem 0.75rem;
+    }
+
+    .header-left {
+        gap: 0.4rem;
+    }
+
+    .header-right {
+        gap: 0.35rem;
     }
 
     .logout-button {
-        padding: var(--space-xs) var(--space-md);
+        padding: 0.35rem 0.5rem;
         font-size: var(--font-xs);
+        min-height: 34px;
+    }
+
+    .logout-button .button-text {
+        display: none;
     }
 }
 

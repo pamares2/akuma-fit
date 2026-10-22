@@ -103,7 +103,7 @@ export default function Clients() {
     }
 
     return (
-        <div className="dashboard-main" style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="dashboard-main" style={{ padding: 'clamp(0.85rem, 3vw, 1.5rem)', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Gestión de Clientes</h1>
@@ -329,7 +329,13 @@ export default function Clients() {
                                 </div>
 
                                 {/* Acciones Rápidas */}
-                                <div style={{ borderTop: '1px solid var(--color-border, #282c34)', paddingTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <div style={{
+                                    borderTop: '1px solid var(--color-border, #282c34)',
+                                    paddingTop: '0.75rem',
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(78px, 1fr))',
+                                    gap: '0.4rem',
+                                }}>
                                     {client.hasAssessment && (
                                         <button
                                             onClick={() => handleViewAssessment(client)}

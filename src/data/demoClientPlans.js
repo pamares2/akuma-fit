@@ -383,6 +383,7 @@ export function saveCustomDemoRoutine(clientId, routine) {
                 order: s.order || sIdx + 1,
                 reps: String(s.reps ?? '10'),
                 kg: String(s.kg ?? '20'),
+                rir: String(s.rir ?? ''),
                 type: s.type || 'Normal',
                 rest_time: s.rest_time || '90s',
             })),
@@ -394,7 +395,7 @@ export function saveCustomDemoRoutine(clientId, routine) {
 }
 
 /**
- * Actualiza una rutina (título, comentario del coach, ejercicios, kilos y repeticiones)
+ * Actualiza una rutina (título, comentario del coach, ejercicios, kilos, repeticiones y RIR)
  * para progresar al cliente de prueba.
  */
 export function updateCustomDemoRoutine(clientId, routineId, routineData) {
@@ -419,6 +420,7 @@ export function updateCustomDemoRoutine(clientId, routineId, routineData) {
                 order: s.order || sIdx + 1,
                 reps: String(s.reps ?? ''),
                 kg: String(s.kg ?? ''),
+                rir: String(s.rir ?? ''),
                 type: s.type || 'Normal',
                 rest_time: s.rest_time || '90s',
             })),

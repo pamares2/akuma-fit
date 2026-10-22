@@ -1,4 +1,3 @@
- 
 .exercises-page,
 .routine-page {
     padding: var(--space-3xl);
@@ -50,7 +49,6 @@
     gap: var(--space-sm);
 }
 
- 
 .form-section-card {
     display: flex;
     flex-direction: column;
@@ -61,7 +59,6 @@
     border-radius: var(--radius-xl);
 }
 
- 
 .exercises-section {
     display: flex;
     flex-direction: column;
@@ -75,21 +72,18 @@
     gap: var(--space-lg);
 }
 
- 
 .exercises-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: var(--space-xl);
 }
 
- 
 .exercises-list {
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
 }
 
- 
 .sets-section {
     display: flex;
     flex-direction: column;
@@ -110,17 +104,33 @@
     margin: 0;
 }
 
+.sets-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-alt);
+    margin-bottom: var(--space-md);
+}
+
 .sets-table {
     display: flex;
     flex-direction: column;
+    min-width: 480px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
+.sets-table-container .sets-table {
+    border: none;
+    border-radius: 0;
+}
+
 .sets-table-header {
     display: grid;
-    grid-template-columns: 50px 1fr 1fr 1fr 40px;
+    grid-template-columns: 44px 1fr 1fr 1fr 1.15fr 40px;
     gap: var(--space-sm);
     padding: var(--space-md) var(--space-lg);
     background-color: var(--color-surface);
@@ -130,15 +140,21 @@
     color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    align-items: center;
 }
 
 .sets-table-row {
     display: grid;
-    grid-template-columns: 50px 1fr 1fr 1fr 40px;
+    grid-template-columns: 44px 1fr 1fr 1fr 1.15fr 40px;
     gap: var(--space-sm);
     padding: var(--space-md) var(--space-lg);
     align-items: center;
     border-bottom: 1px solid var(--color-border);
+}
+
+.sets-table-5col .sets-table-header,
+.sets-table-5col .sets-table-row {
+    grid-template-columns: 44px 1fr 1fr 1fr 1.2fr;
 }
 
 .sets-table-row:last-child {
@@ -171,7 +187,6 @@
     border-color: var(--color-primary);
 }
 
- 
 .video-upload-area {
     display: flex;
     flex-direction: column;
@@ -216,7 +231,6 @@
     background-color: var(--color-bg);
 }
 
- 
 @media (max-width: 768px) {
     .exercises-page,
     .routine-page,
@@ -267,16 +281,9 @@
         justify-content: center;
     }
 
-    .sets-table-header,
-    .sets-table-row {
-        grid-template-columns: 40px 1fr 1fr 1fr 36px;
-        gap: var(--space-xs);
-        padding: var(--space-sm) var(--space-md);
-    }
-
     .set-input {
         padding: var(--space-xs);
-        font-size: var(--font-sm);
+        font-size: 16px !important;
     }
 
     .exercise-picker-item {
@@ -307,19 +314,5 @@
 
     .routine-exercise-content {
         padding: var(--space-md);
-    }
-
-    .sets-table-header,
-    .sets-table-row {
-        grid-template-columns: 32px 1fr 1fr 32px;
-        font-size: var(--font-xs);
-    }
-
-    .set-col-type {
-        display: none;
-    }
-
-    .sets-table-header .set-col-type {
-        display: none;
     }
 }

@@ -36,6 +36,25 @@ const ROUTINES_BY_CLIENT_SELECT = `
 `;
 
 /**
+ * Extrae de forma limpia el tipo de serie y el valor RIR (Repeticiones en Reserva).
+ * Permite compatibilidad retroactiva total tanto si la base de datos almacena el RIR
+ * en la columna de tipo como si se almacena directamente.
+ *
+ * @param {string} rawType - Tipo original (ej: 'Normal (RIR 1-2)').
+ * @param {string} [rawRir] - RIR si ya viene informado.
+ * @returns {{ type: string, rir: string }}
+ */
+function parseSetTypeAndRir(rawType, rawRir) {
+    if (rawRir) return { type: rawType || 'Normal', rir: String(rawRir) };
+    if (!rawType) return { type: 'Normal', rir: '' };
+    const match = String(rawType).match(/^(.*?)(?:\s*\(RIR\s*([^)]+)\))?$/i);
+    if (match && match[2]) {
+        return { type: match[1].trim() || 'Normal', rir: match[2].trim() };
+    }
+    return { type: String(rawType), rir: '' };
+}
+
+/**
  * Convierte la fila de Supabase en una rutina con su lista de ejercicios
  * (`exercises`) ordenados por posición, cada uno con sus `sets` ordenados.
  *
@@ -52,7 +71,15 @@ function mapRoutineExercises(routine) {
             const sets = (exercise.exercise_template_has_set_template || [])
                 .map(rel => rel.set_template)
                 .filter(Boolean)
-                .sort((a, b) => a.order - b.order);
+                .sort((a, b) => a.order - b.order)
+                .map(set => {
+                    const parsed = parseSetTypeAndRir(set.type, set.rir);
+                    return {
+                        ...set,
+                        type: parsed.type,
+                        rir: parsed.rir,
+                    };
+                });
 
             const exerciseRest = { ...exercise };
             delete exerciseRest.exercise_template_has_set_template;
@@ -148,11 +175,12 @@ export const routineService = {
             const setRows = exercises.flatMap(exercise =>
                 (exercise.sets || []).map(set => {
                     exerciseIdsBySet.push(exercise.id);
+                    const encodedType = set.rir ? `${set.type || 'Normal'} (RIR ${set.rir})` : (set.type || 'Normal');
                     return {
                         order: set.order,
-                        reps: set.reps,
-                        kg: set.kg,
-                        type: set.type,
+                        reps: String(set.reps || ''),
+                        kg: set.kg != null && set.kg !== '' ? String(set.kg) : null,
+                        type: encodedType,
                     };
                 })
             );
@@ -253,11 +281,12 @@ export const routineService = {
             const setRows = exercises.flatMap(exercise =>
                 (exercise.sets || []).map(set => {
                     exerciseIdsBySet.push(exercise.id);
+                    const encodedType = set.rir ? `${set.type || 'Normal'} (RIR ${set.rir})` : (set.type || 'Normal');
                     return {
                         order: set.order,
                         reps: String(set.reps || ''),
-                        kg: set.kg != null ? String(set.kg) : null,
-                        type: set.type || 'Normal',
+                        kg: set.kg != null && set.kg !== '' ? String(set.kg) : null,
+                        type: encodedType,
                     };
                 })
             );

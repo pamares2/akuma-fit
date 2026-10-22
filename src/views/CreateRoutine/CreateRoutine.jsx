@@ -124,6 +124,7 @@ function CreateRoutine() {
                         order: s.order || sIdx + 1,
                         reps: s.reps ?? '',
                         kg: s.kg ?? '',
+                        rir: s.rir ?? '',
                         type: s.type || 'Normal',
                     };
                 }),
@@ -157,6 +158,7 @@ function CreateRoutine() {
                         order: s.order || sIdx + 1,
                         reps: s.reps ?? '',
                         kg: s.kg ?? '',
+                        rir: s.rir ?? '',
                         type: s.type || 'Normal',
                     };
                 }),
@@ -244,7 +246,7 @@ function CreateRoutine() {
         idCounter.current += 1;
         setSelectedExercises([...selectedExercises, {
             ...exercise,
-            sets: [{ id: `new-${idCounter.current}`, order: 1, reps: '', kg: '', type: 'Normal' }],
+            sets: [{ id: `new-${idCounter.current}`, order: 1, reps: '', kg: '', rir: '1-2', type: 'Normal' }],
         }]);
         setExpandedExercises(prev => ({ ...prev, [exercise.id]: true }));
     };
@@ -262,6 +264,7 @@ function CreateRoutine() {
                     order: e.sets.length + 1,
                     reps: '',
                     kg: '',
+                    rir: '1-2',
                     type: 'Normal',
                 };
                 return { ...e, sets: [...e.sets, newSet] };
@@ -334,6 +337,7 @@ function CreateRoutine() {
                     order: s.order,
                     reps: s.reps,
                     kg: s.kg,
+                    rir: s.rir,
                     type: s.type,
                 })),
             })),
@@ -457,7 +461,7 @@ function CreateRoutine() {
                                                                 }}
                                                             >
                                                                 {ex.exercise_name || ex.name}
-                                                                {ex.sets?.[0]?.kg ? ` (${ex.sets[0].kg}kg)` : ''}
+                                                                {ex.sets?.[0]?.kg ? ` (${ex.sets[0].kg}kg${ex.sets[0].rir ? `, RIR ${ex.sets[0].rir}` : ''})` : (ex.sets?.[0]?.rir ? ` (RIR ${ex.sets[0].rir})` : '')}
                                                             </span>
                                                         ))}
                                                         {r.exercises.length > 3 && (
@@ -702,56 +706,70 @@ function CreateRoutine() {
                                                     </Button>
                                                 </div>
 
-                                                <div className="sets-table">
-                                                    <div className="sets-table-header">
-                                                        <span className="set-col-order">#</span>
-                                                        <span className="set-col-reps">Reps</span>
-                                                        <span className="set-col-kg">Kg</span>
-                                                        <span className="set-col-type">Tipo</span>
-                                                        <span className="set-col-actions"></span>
-                                                    </div>
-                                                    {exercise.sets.map((set) => (
-                                                        <div key={set.id} className="sets-table-row">
-                                                            <span className="set-col-order set-order-number">{set.order}</span>
-                                                            <div className="set-col-reps">
-                                                                <input
-                                                                    type="text"
-                                                                    value={set.reps}
-                                                                    onChange={(e) => updateSet(exercise.id, set.id, 'reps', e.target.value)}
-                                                                    placeholder="Ej: 8-10"
-                                                                    className="set-input"
-                                                                />
-                                                            </div>
-                                                            <div className="set-col-kg">
-                                                                <input
-                                                                    type="text"
-                                                                    value={set.kg}
-                                                                    onChange={(e) => updateSet(exercise.id, set.id, 'kg', e.target.value)}
-                                                                    placeholder="Ej: 60"
-                                                                    className="set-input"
-                                                                />
-                                                            </div>
-                                                            <div className="set-col-type">
-                                                                <select
-                                                                    value={set.type}
-                                                                    onChange={(e) => updateSet(exercise.id, set.id, 'type', e.target.value)}
-                                                                    className="set-input"
-                                                                >
-                                                                    {SET_TYPES.map(type => (
-                                                                        <option key={type} value={type}>{type}</option>
-                                                                    ))}
-                                                                </select>
-                                                            </div>
-                                                            <div className="set-col-actions">
-                                                                <button
-                                                                    onClick={() => removeSet(exercise.id, set.id)}
-                                                                    className="btn-icon btn-icon-danger btn-icon-sm"
-                                                                >
-                                                                    <FiTrash2 size={14} />
-                                                                </button>
-                                                            </div>
+                                                <div className="sets-table-container">
+                                                    <div className="sets-table">
+                                                        <div className="sets-table-header">
+                                                            <span className="set-col-order">#</span>
+                                                            <span className="set-col-reps">Reps</span>
+                                                            <span className="set-col-kg">Kg</span>
+                                                            <span className="set-col-rir" title="Repeticiones en Reserva">RIR</span>
+                                                            <span className="set-col-type">Tipo</span>
+                                                            <span className="set-col-actions"></span>
                                                         </div>
-                                                    ))}
+                                                        {exercise.sets.map((set) => (
+                                                            <div key={set.id} className="sets-table-row">
+                                                                <span className="set-col-order set-order-number">{set.order}</span>
+                                                                <div className="set-col-reps">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={set.reps}
+                                                                        onChange={(e) => updateSet(exercise.id, set.id, 'reps', e.target.value)}
+                                                                        placeholder="Ej: 8-10"
+                                                                        className="set-input"
+                                                                    />
+                                                                </div>
+                                                                <div className="set-col-kg">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={set.kg}
+                                                                        onChange={(e) => updateSet(exercise.id, set.id, 'kg', e.target.value)}
+                                                                        placeholder="Ej: 60"
+                                                                        className="set-input"
+                                                                    />
+                                                                </div>
+                                                                <div className="set-col-rir">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={set.rir ?? ''}
+                                                                        onChange={(e) => updateSet(exercise.id, set.id, 'rir', e.target.value)}
+                                                                        placeholder="Ej: 1-2 o 0"
+                                                                        className="set-input"
+                                                                        title="Repeticiones en Reserva: 0 = Fallo, 1 = 1 antes de fallo, 2 = 2 antes..."
+                                                                    />
+                                                                </div>
+                                                                <div className="set-col-type">
+                                                                    <select
+                                                                        value={set.type}
+                                                                        onChange={(e) => updateSet(exercise.id, set.id, 'type', e.target.value)}
+                                                                        className="set-input"
+                                                                    >
+                                                                        {SET_TYPES.map(type => (
+                                                                            <option key={type} value={type}>{type}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                                <div className="set-col-actions">
+                                                                    <button
+                                                                        onClick={() => removeSet(exercise.id, set.id)}
+                                                                        className="btn-icon btn-icon-danger btn-icon-sm"
+                                                                        title="Eliminar serie"
+                                                                    >
+                                                                        <FiTrash2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
