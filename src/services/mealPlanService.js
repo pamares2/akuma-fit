@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { DEFAULT_RECIPES } from '../data/defaultRecipes.js';
 import { recipeService } from './recipeService.js';
+import { DEMO_CHAT_CLIENTS, isDemoClientId, getDemoClientById } from './feedbackService.js';
 
 /**
  * Selección completa de un plan: días -> comidas -> ítems (con alimento o
@@ -236,6 +237,14 @@ export const mealPlanService = {
      * @returns {Promise<{client: Object, assessment: Object|null, measurements: Array}>}
      */
     async getClientNutritionalProfile(clientId) {
+        if (isDemoClientId(clientId)) {
+            const demo = getDemoClientById(clientId);
+            return {
+                client: demo ? { id: demo.id, name: demo.name, surname: demo.surname, gender: demo.gender, birthdate: demo.birthdate } : null,
+                assessment: demo?.assessment || null,
+                measurements: demo?.measurements || [],
+            };
+        }
         const [profileRes, assessmentRes, measurementsRes] = await Promise.all([
             supabase
                 .from('profile')
@@ -421,6 +430,7 @@ export const mealPlanService = {
      * @param {number} planId - Id del plan.
      */
     async assign(clientId, planId) {
+        if (isDemoClientId(clientId)) return;
         const { error } = await supabase
             .from('profile_has_meal_plan')
             .insert({ profile_id: clientId, meal_plan_id: planId });

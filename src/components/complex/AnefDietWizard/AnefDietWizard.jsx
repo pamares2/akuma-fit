@@ -115,7 +115,7 @@ function AnefDietWizard({ plan = null, initialClientId = '', onCompleted, onCanc
 
         let active = true;
 
-        mealPlanService.getClientNutritionalProfile(Number(selectedClientId))
+        mealPlanService.getClientNutritionalProfile(selectedClientId)
             .then((profileBundle) => {
                 if (!active || !profileBundle?.client) return;
                 const mapped = mapClientToAnefData(profileBundle);
@@ -281,7 +281,7 @@ function AnefDietWizard({ plan = null, initialClientId = '', onCompleted, onCanc
             }
 
             if (selectedClientId) {
-                await mealPlanService.assign(Number(selectedClientId), targetPlanId);
+                await mealPlanService.assign(selectedClientId, targetPlanId);
             }
 
             await dietGeneratorService.generateAnefCompleteDiet(targetPlanId, {

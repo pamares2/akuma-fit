@@ -3,7 +3,7 @@ import { getCurrentProfile } from '../utils/auth.js';
 
 const FEEDBACK_MARKER_TITLE = '__AKUMA_FEEDBACK__';
 const FEEDBACK_DTSTART = '2000-01-01';
-const DEMO_STORAGE_KEY = 'akuma_demo_feedback_chats_v1';
+const DEMO_STORAGE_KEY = 'akuma_demo_feedback_chats_v2';
 
 /**
  * Categorías / temas disponibles para etiquetar cada mensaje del chat 1 a 1.
@@ -89,8 +89,8 @@ export const CLIENT_QUICK_TEMPLATES = [
 ];
 
 /**
- * Clientes interactivos de demostración 1 a 1 (usados cuando aún no hay clientes
- * en la base de datos o para probar la conversación bidireccional en vivo).
+ * Dos clientes completos de prueba 1 a 1 integrados en toda la app (Clientes,
+ * Check-Ins, Chat 1:1 y Calculadora de Dieta ANEF).
  */
 export const DEMO_CHAT_CLIENTS = [
     {
@@ -99,11 +99,13 @@ export const DEMO_CHAT_CLIENTS = [
         name: 'Carlos',
         surname: 'Pérez',
         fullName: 'Carlos Pérez',
-        goal: 'Pérdida de grasa / Definición',
+        gender: 'Hombre',
+        sex: 'Hombre',
+        birthdate: '1997-04-15',
+        age: 29,
         weight: 78.4,
         height: 178,
-        age: 29,
-        sex: 'Hombre',
+        goal: 'Pérdida de grasa / Definición',
         restrictions: 'Sin lactosa',
         routineName: 'Torso / Pierna Hipertrofia 4 días',
         dietName: 'Dieta ANEF — Definición (2150 kcal)',
@@ -111,6 +113,73 @@ export const DEMO_CHAT_CLIENTS = [
         trainingAdherence: '100%',
         restQuality: 8,
         energyLevel: 8,
+        assessment: {
+            id: 9001,
+            profile_id: 'demo-client-1',
+            height: 178,
+            initial_weight: 81.2,
+            goals: 'Pérdida de grasa y definición muscular manteniendo fuerza en básicos',
+            main_goal: 'Pérdida de grasa / Definición',
+            current_level: 'Intermedio (3 años entrenando fuerza)',
+            training_freq: '4 días por semana (1h intensa)',
+            where: 'Gimnasio comercial completo',
+            equipment: 'Barras olímpicas, mancuernas, poleas y máquinas',
+            current_injuries: 'Ligera molestia en hombro derecho en press trasnuca',
+            disease: 'Ninguna',
+            medical_restrictions: 'Ninguna',
+            current_diet: '4 comidas al día, trabajo de oficina sedentario',
+            food_restrictions: 'Sin lactosa',
+            created_at: '2026-09-25T10:00:00.000Z',
+        },
+        measurements: [
+            { id: 8001, profile_id: 'demo-client-1', weight: 78.4, weight_kg: 78.4, body_fat: 14.2, created_at: '2026-10-20T08:00:00.000Z' },
+            { id: 8002, profile_id: 'demo-client-1', weight: 79.1, weight_kg: 79.1, body_fat: 14.8, created_at: '2026-10-13T08:00:00.000Z' },
+            { id: 8003, profile_id: 'demo-client-1', weight: 79.9, weight_kg: 79.9, body_fat: 15.4, created_at: '2026-10-06T08:00:00.000Z' },
+        ],
+        checkIns: [
+            {
+                id: 7001,
+                profile_id: 'demo-client-1',
+                created_at: '2026-10-20T18:30:00.000Z',
+                how_do_you_feel: 'Con mucha energía en los entrenos y bajando cintura cada semana.',
+                diet_adherence: '90-100%',
+                training_adherence: '100%',
+                rest_quality: 8,
+                energy_level: 8,
+                hunger_level: 3,
+                gym_performance: 5,
+                comments: 'El reparto post-entreno de la dieta ANEF me sienta genial.',
+                coach_feedback: '¡Semana de 10 Carlos! Has bajado 0.7 kg manteniendo toda la fuerza. Seguimos en 2150 kcal.',
+            },
+            {
+                id: 7002,
+                profile_id: 'demo-client-1',
+                created_at: '2026-10-13T18:30:00.000Z',
+                how_do_you_feel: 'Buenas sensaciones, algo de agujetas en femoral.',
+                diet_adherence: '80-90%',
+                training_adherence: '100%',
+                rest_quality: 7,
+                energy_level: 8,
+                hunger_level: 4,
+                gym_performance: 4,
+                comments: 'El sábado tuve una cena familiar pero cuadré macros durante el día.',
+                coach_feedback: 'Muy bien gestionada esa cena libre. Mantén los 2 litros de agua diarios.',
+            },
+            {
+                id: 7003,
+                profile_id: 'demo-client-1',
+                created_at: '2026-10-06T18:30:00.000Z',
+                how_do_you_feel: 'Adaptándome al nuevo bloque de torso-pierna.',
+                diet_adherence: '90-100%',
+                training_adherence: '90-100%',
+                rest_quality: 8,
+                energy_level: 7,
+                hunger_level: 3,
+                gym_performance: 4,
+                comments: 'Todo bien con las recetas sin lactosa.',
+                coach_feedback: 'Buen arranque de mes Carlos, prioriza la técnica en sentadilla.',
+            },
+        ],
     },
     {
         id: 'demo-client-2',
@@ -118,11 +187,13 @@ export const DEMO_CHAT_CLIENTS = [
         name: 'Laura',
         surname: 'Gómez',
         fullName: 'Laura Gómez',
-        goal: 'Ganancia muscular / Volumen limpio',
+        gender: 'Mujer',
+        sex: 'Mujer',
+        birthdate: '2000-08-22',
+        age: 26,
         weight: 61.2,
         height: 165,
-        age: 26,
-        sex: 'Mujer',
+        goal: 'Ganancia muscular / Volumen limpio',
         restrictions: 'Ninguna',
         routineName: 'Full Body + Énfasis Glúteo/Pierna',
         dietName: 'Dieta ANEF — Volumen (2380 kcal)',
@@ -130,30 +201,78 @@ export const DEMO_CHAT_CLIENTS = [
         trainingAdherence: '100%',
         restQuality: 9,
         energyLevel: 9,
-    },
-    {
-        id: 'demo-client-3',
-        isDemo: true,
-        name: 'Miguel',
-        surname: 'Ángel Ruiz',
-        fullName: 'Miguel Ángel Ruiz',
-        goal: 'Recomposición corporal',
-        weight: 84.0,
-        height: 181,
-        age: 34,
-        sex: 'Hombre',
-        restrictions: 'Alergia a frutos secos (nueces)',
-        routineName: 'Push / Pull / Legs 5 días',
-        dietName: 'Dieta ANEF — Normocalórica (2520 kcal)',
-        dietAdherence: '75%',
-        trainingAdherence: '90%',
-        restQuality: 6,
-        energyLevel: 7,
+        assessment: {
+            id: 9002,
+            profile_id: 'demo-client-2',
+            height: 165,
+            initial_weight: 59.8,
+            goals: 'Ganancia de masa muscular (superávit controlado / volumen limpio) y mejorar marcas en tren inferior',
+            main_goal: 'Ganancia muscular / Volumen',
+            current_level: 'Avanzada (4 años entrenando)',
+            training_freq: '5 días por semana (entreno intenso)',
+            where: 'Gimnasio completo',
+            equipment: 'Completo (peso libre, discos, máquinas y bandas)',
+            current_injuries: '',
+            disease: '',
+            medical_restrictions: '',
+            current_diet: '5 comidas al día, estilo de vida activo',
+            food_restrictions: 'Ninguna',
+            created_at: '2026-09-20T11:30:00.000Z',
+        },
+        measurements: [
+            { id: 8101, profile_id: 'demo-client-2', weight: 61.2, weight_kg: 61.2, body_fat: 19.5, created_at: '2026-10-21T08:15:00.000Z' },
+            { id: 8102, profile_id: 'demo-client-2', weight: 60.8, weight_kg: 60.8, body_fat: 19.4, created_at: '2026-10-14T08:15:00.000Z' },
+            { id: 8103, profile_id: 'demo-client-2', weight: 60.3, weight_kg: 60.3, body_fat: 19.2, created_at: '2026-10-07T08:15:00.000Z' },
+        ],
+        checkIns: [
+            {
+                id: 7101,
+                profile_id: 'demo-client-2',
+                created_at: '2026-10-21T19:00:00.000Z',
+                how_do_you_feel: 'Súper fuerte entrenando, mejorando cargas en Hip Thrust y Sentadilla.',
+                diet_adherence: '90-100%',
+                training_adherence: '100%',
+                rest_quality: 9,
+                energy_level: 9,
+                hunger_level: 2,
+                gym_performance: 5,
+                comments: 'Las tortitas de avena del desayuno y el salmón por la noche me encantan.',
+                coach_feedback: '¡Enhorabuena Laura! Subida de peso súper limpia (+0.4 kg) y récord personal en Hip Thrust.',
+            },
+            {
+                id: 7102,
+                profile_id: 'demo-client-2',
+                created_at: '2026-10-14T19:00:00.000Z',
+                how_do_you_feel: 'Muy buena recuperación entre sesiones.',
+                diet_adherence: '90-100%',
+                training_adherence: '100%',
+                rest_quality: 8,
+                energy_level: 9,
+                hunger_level: 3,
+                gym_performance: 5,
+                comments: 'Llegando sin problema a los 5ratos de comida.',
+                coach_feedback: 'Sigue así Laura, la próxima semana subimos 2.5 kg en peso muerto rumano.',
+            },
+            {
+                id: 7103,
+                profile_id: 'demo-client-2',
+                created_at: '2026-10-07T19:00:00.000Z',
+                how_do_you_feel: 'Motivada con el inicio de volumen.',
+                diet_adherence: '90-100%',
+                training_adherence: '100%',
+                rest_quality: 8,
+                energy_level: 8,
+                hunger_level: 2,
+                gym_performance: 4,
+                comments: 'Sin molestias articulares.',
+                coach_feedback: 'Excelente primera semana del bloque de hipertrofia.',
+            },
+        ],
     },
 ];
 
 /**
- * Mensajes iniciales por defecto para los clientes demo.
+ * Mensajes iniciales por defecto para los 2 clientes de prueba.
  */
 function getInitialDemoMessages() {
     const now = Date.now();
@@ -218,19 +337,6 @@ function getInitialDemoMessages() {
                 updatedAt: new Date(now - 3 * hour).toISOString(),
             },
         ],
-        'demo-client-3': [
-            {
-                rowId: 'demo-msg-301',
-                profileId: 'demo-client-3',
-                kind: 'message',
-                topic: 'ajuste',
-                authorRole: 'client',
-                authorName: 'Miguel Ángel Ruiz',
-                text: 'Hola coach, esta semana por el turno de trabajo dormí unas 6 horas de media. El entreno lo saqué al 100%, pero el viernes llegué algo cansado.',
-                createdAt: new Date(now - 8 * hour).toISOString(),
-                updatedAt: new Date(now - 8 * hour).toISOString(),
-            },
-        ],
     };
 }
 
@@ -262,6 +368,10 @@ function saveDemoStore(store) {
 
 export function isDemoClientId(clientProfileId) {
     return typeof clientProfileId === 'string' && clientProfileId.startsWith('demo-client-');
+}
+
+export function getDemoClientById(clientProfileId) {
+    return DEMO_CHAT_CLIENTS.find(c => String(c.id) === String(clientProfileId)) || null;
 }
 
 /**
@@ -296,10 +406,6 @@ function parseFeedbackRow(raw, fallbackRow) {
 
 /**
  * Servicio de comunicación y feedback 1 a 1 bidireccional entre Entrenador (Coach) y Cliente.
- *
- * Persiste tanto el feedback estructurado de cada Check-In como el chat directo
- * 1 a 1 de seguimiento entre entrenador y atleta en Supabase (con soporte de modo
- * interactivo de prueba cuando aún no hay clientes).
  */
 export const feedbackService = {
     /**
@@ -317,8 +423,19 @@ export const feedbackService = {
         if (isDemoClientId(clientProfileId)) {
             const store = loadDemoStore();
             const demoMessages = store[clientProfileId] || [];
+            const byCheckInId = {};
+            for (const entry of demoMessages) {
+                if (entry.kind === 'checkin_feedback' && entry.checkInId) {
+                    byCheckInId[entry.checkInId] = {
+                        checkInId: entry.checkInId,
+                        coachFeedback: entry.text,
+                        coachName: entry.authorName,
+                        updatedAt: entry.updatedAt,
+                    };
+                }
+            }
             return {
-                byCheckInId: {},
+                byCheckInId,
                 messages: demoMessages,
             };
         }
@@ -372,7 +489,7 @@ export const feedbackService = {
      * Enriquece una lista de check-ins con los campos `coach_feedback`,
      * `coach_feedback_at` y `client_reply`.
      *
-     * @param {number} clientProfileId - Id del perfil del cliente.
+     * @param {number|string} clientProfileId - Id del perfil del cliente.
      * @param {Array<Object>} checkIns - Lista de check-ins.
      * @returns {Promise<Array<Object>>} Check-ins enriquecidos.
      */
@@ -397,7 +514,7 @@ export const feedbackService = {
     /**
      * Guarda o actualiza el feedback del entrenador sobre un check-in concreto.
      *
-     * @param {number} clientProfileId - Id del perfil del cliente.
+     * @param {number|string} clientProfileId - Id del perfil del cliente.
      * @param {number} checkInId - Id del check-in.
      * @param {string} text - Texto del feedback del entrenador.
      * @returns {Promise<Object>} Feedback guardado.
@@ -408,11 +525,31 @@ export const feedbackService = {
             throw new Error('Escribe un mensaje de feedback antes de guardar.');
         }
 
-        const profile = await getCurrentProfile();
-        const authorName = `${profile?.name || 'Entrenador'} ${profile?.surname || ''}`.trim();
         const now = new Date().toISOString();
 
-        // Intentar actualizar columna nativa `coach_feedback` si existe en la BD
+        if (isDemoClientId(clientProfileId)) {
+            const payloadObj = {
+                rowId: `demo-ci-fb-${checkInId}`,
+                profileId: clientProfileId,
+                kind: 'checkin_feedback',
+                topic: 'checkin',
+                checkInId: Number(checkInId),
+                authorRole: 'coach',
+                authorName: 'Entrenador',
+                text: cleanText,
+                createdAt: now,
+                updatedAt: now,
+            };
+            const store = loadDemoStore();
+            const list = store[clientProfileId] || [];
+            store[clientProfileId] = [...list, payloadObj];
+            saveDemoStore(store);
+            return payloadObj;
+        }
+
+        const profile = await getCurrentProfile();
+        const authorName = `${profile?.name || 'Entrenador'} ${profile?.surname || ''}`.trim();
+
         await supabase
             .from('check_in')
             .update({ coach_feedback: cleanText })
@@ -522,7 +659,7 @@ export const feedbackService = {
         const now = new Date().toISOString();
 
         if (isDemoClientId(clientProfileId)) {
-            const demoClient = DEMO_CHAT_CLIENTS.find(c => c.id === clientProfileId);
+            const demoClient = getDemoClientById(clientProfileId);
             const authorRole = options.overrideRole || 'coach';
             const authorName = options.overrideAuthorName
                 || (authorRole === 'coach' ? 'Entrenador' : (demoClient?.fullName || 'Cliente'));
@@ -584,10 +721,8 @@ export const feedbackService = {
     /**
      * Obtiene la lista completa de conversaciones 1 a 1 para el Entrenador,
      * enriquecida con el último mensaje, contador de mensajes y contexto del cliente.
-     * Si no existen clientes reales en Supabase o se activa `includeDemo`,
-     * incluye las conversaciones de demostración interactivas.
      *
-     * @param {boolean} [includeDemo=true] - Si incluir clientes demo interactivos.
+     * @param {boolean} [includeDemo=true] - Si incluir los 2 clientes de prueba interactivos.
      * @returns {Promise<Array<Object>>} Lista de conversaciones ordenadas por actividad reciente.
      */
     async getCoachConversations(includeDemo = true) {
