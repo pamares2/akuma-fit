@@ -5,6 +5,7 @@ import { recipeService } from './recipeService.js';
 import { deduplicateIngredients } from '../utils/dietMacros.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId, getDemoClientById } from './feedbackService.js';
 import { assignDemoPlan, unassignDemoPlan, getAssignedPlanIdsForDemoClient, getAssignedDemoClientsForPlan, buildDefaultDemoMealPlan } from '../data/demoClientPlans.js';
+import { isClientDeleted } from '../utils/deletedClients.js';
 
 /**
  * Selección completa de un plan: días -> comidas -> ítems (con alimento o
@@ -256,7 +257,7 @@ export const mealPlanService = {
                 .eq('role', 'client')
                 .order('name');
 
-            realClients = (!error && data) ? data : [];
+            realClients = (!error && data) ? data.filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`)) : [];
         } catch {
             realClients = [];
         }
@@ -337,7 +338,7 @@ export const mealPlanService = {
         return (data || []).map(plan => {
             const dayCount = plan.meal_plan_day?.length || 0;
             const clients = [
-                ...(plan.profile_has_meal_plan || []).map(rel => rel.profile).filter(Boolean),
+                ...(plan.profile_has_meal_plan || []).map(rel => rel.profile).filter(Boolean).filter(p => !isClientDeleted(p.id, `${p.name || ''} ${p.surname || ''}`)),
                 ...getAssignedDemoClientsForPlan(plan.id)
             ];
 

@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId } from './feedbackService.js';
+import { isClientDeleted } from '../utils/deletedClients.js';
 import {
     buildDefaultDemoRoutines,
     saveCustomDemoRoutine,
@@ -109,7 +110,9 @@ export const routineService = {
                 .select('id, name, surname')
                 .eq('role', 'client')
                 .order('name');
-            if (!error && data) realClients = data;
+            if (!error && data) {
+                realClients = data.filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`));
+            }
         } catch {
             realClients = [];
         }

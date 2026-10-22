@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { DEMO_CHAT_CLIENTS } from './feedbackService.js';
+import { isClientDeleted } from '../utils/deletedClients.js';
 
 const ADHERENCE_MAP = {
     'Totalmente': 100,
@@ -59,18 +60,21 @@ export const dashboardService = {
         let weeklyCheckIns = 0;
 
         try {
-            const [{ count: clientsCount }, { count: checkInsCount }] = await Promise.all([
+            const [{ data: clientsData }, { data: checkInsData }] = await Promise.all([
                 supabase
                     .from('profile')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, name, surname')
                     .eq('role', 'client'),
                 supabase
                     .from('check_in')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, profile_id')
                     .gte('created_at', oneWeekAgo.toISOString()),
             ]);
-            activeClients = clientsCount || 0;
-            weeklyCheckIns = checkInsCount || 0;
+            const validClients = (clientsData || []).filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`));
+            const validClientIds = new Set(validClients.map(c => c.id));
+            const validCheckIns = (checkInsData || []).filter(ci => validClientIds.has(ci.profile_id));
+            activeClients = validClients.length;
+            weeklyCheckIns = validCheckIns.length;
         } catch {
             // Silently fall back to demo counts
         }
@@ -104,7 +108,12 @@ export const dashboardService = {
                 .limit(limit);
 
             if (!error && data) {
-                realCheckIns = data.map(checkIn => {
+                realCheckIns = data
+                    .filter(checkIn => {
+                        const fullName = `${checkIn.profile?.name || ''} ${checkIn.profile?.surname || ''}`;
+                        return !isClientDeleted(checkIn.profile_id, fullName);
+                    })
+                    .map(checkIn => {
                     const dietValue = ADHERENCE_MAP[checkIn.diet_adherence] || 0;
                     const trainingValue = ADHERENCE_MAP[checkIn.training_adherence] || 0;
                     const avgAdherence = Math.round((dietValue + trainingValue) / 2);
@@ -170,40 +179,43 @@ export const dashboardService = {
 
         try {
             const [
-                { count: activeClients },
-                { count: thisWeekCount },
-                { count: lastWeekCount },
-                { data: checkInsThisWeek },
-                { data: sessionsCount },
+                { data: activeClientsData },
+                { data: checkInsThisWeekData },
+                { data: checkInsLastWeekData },
+                { data: sessionsData },
             ] = await Promise.all([
                 supabase
                     .from('profile')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, name, surname')
                     .eq('role', 'client'),
                 supabase
                     .from('check_in')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, profile_id')
                     .gte('created_at', oneWeekAgo.toISOString()),
                 supabase
                     .from('check_in')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, profile_id')
                     .gte('created_at', twoWeeksAgo.toISOString())
                     .lt('created_at', oneWeekAgo.toISOString()),
                 supabase
-                    .from('check_in')
-                    .select('profile_id')
-                    .gte('created_at', oneWeekAgo.toISOString()),
-                supabase
                     .from('training_session')
-                    .select('id', { count: 'exact', head: true })
+                    .select('id, profile_id')
                     .eq('status', 'completed')
                     .gte('started_at', oneWeekAgo.toISOString()),
             ]);
-            activeClientsCount = activeClients || 0;
-            thisWeek = thisWeekCount || 0;
-            lastWeek = lastWeekCount || 0;
-            clientsThisWeek = new Set((checkInsThisWeek || []).map(c => c.profile_id)).size;
-            sessionsThisWeek = sessionsCount || 0;
+
+            const validClients = (activeClientsData || []).filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`));
+            const validClientIds = new Set(validClients.map(c => c.id));
+
+            activeClientsCount = validClients.length;
+            thisWeek = (checkInsThisWeekData || []).filter(c => validClientIds.has(c.profile_id)).length;
+            lastWeek = (checkInsLastWeekData || []).filter(c => validClientIds.has(c.profile_id)).length;
+            clientsThisWeek = new Set(
+                (checkInsThisWeekData || [])
+                    .filter(c => validClientIds.has(c.profile_id))
+                    .map(c => c.profile_id)
+            ).size;
+            sessionsThisWeek = (sessionsData || []).filter(s => validClientIds.has(s.profile_id)).length;
         } catch {
             // Silently proceed
         }
@@ -244,7 +256,9 @@ export const dashboardService = {
                 .select('id, name, surname')
                 .eq('role', 'client');
 
-            for (const client of clients || []) {
+            const validClients = (clients || []).filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`));
+
+            for (const client of validClients) {
                 const { data: checkIns } = await supabase
                     .from('check_in')
                     .select('*')
@@ -269,17 +283,19 @@ export const dashboardService = {
             // Silently proceed
         }
 
-        // Añadir alertas informativas para los clientes de prueba
-        alerts.push({
-            type: 'success',
-            clientName: 'Laura Gómez',
-            text: 'Alta adherencia (100%) y progresión de fuerza en glúteo superada',
-        });
-        alerts.push({
-            type: 'info',
-            clientName: 'Carlos Pérez',
-            text: 'Check-in quincenal respondido (+1 tortita de arroz en pre-entreno)',
-        });
+        // Añadir alertas informativas para los clientes de prueba si existen en el entorno
+        if (DEMO_CHAT_CLIENTS.length > 0) {
+            alerts.push({
+                type: 'success',
+                clientName: 'Laura Gómez',
+                text: 'Alta adherencia (100%) y progresión de fuerza en glúteo superada',
+            });
+            alerts.push({
+                type: 'info',
+                clientName: 'Carlos Pérez',
+                text: 'Check-in quincenal respondido (+1 tortita de arroz en pre-entreno)',
+            });
+        }
 
         return alerts.slice(0, 10);
     },
@@ -307,7 +323,12 @@ export const dashboardService = {
                 .limit(limit);
 
             if (!error && data) {
-                realSessions = data.map(session => {
+                realSessions = data
+                    .filter(session => {
+                        const fullName = `${session.profile?.name || ''} ${session.profile?.surname || ''}`;
+                        return !isClientDeleted(session.profile_id, fullName);
+                    })
+                    .map(session => {
                     const clientName = `${session.profile?.name || ''} ${session.profile?.surname || ''}`.trim() || 'Cliente';
                     const routineTitle = session.routine?.title || 'Sesión';
                     const feelingLabel = session.feeling ? ` · Sensación: ${session.feeling}` : '';
@@ -327,7 +348,7 @@ export const dashboardService = {
 
         const localSessions = getLocalCompletedDemoSessions();
 
-        const defaultDemoSessions = [
+        const defaultDemoSessions = DEMO_CHAT_CLIENTS.length > 0 ? [
             {
                 text: 'Laura Gómez - Día 1 — Énfasis Glúteo e Isquios (Fuerza) · Sensación: Excelente (8.5/10)',
                 time: new Date(Date.now() - 1000 * 60 * 60 * 24).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
@@ -343,7 +364,7 @@ export const dashboardService = {
                 time: new Date(Date.now() - 1000 * 60 * 60 * 72).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
                 timestamp: Date.now() - 1000 * 60 * 60 * 72,
             },
-        ];
+        ] : [];
 
         const all = [...localSessions, ...realSessions, ...defaultDemoSessions].sort((a, b) => b.timestamp - a.timestamp);
         return all.slice(0, limit);

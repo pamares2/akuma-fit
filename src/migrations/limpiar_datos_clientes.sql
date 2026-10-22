@@ -44,6 +44,32 @@ WHERE profile_id IN (SELECT id FROM public.profile WHERE role = 'client');
 DELETE FROM public.coach_has_client 
 WHERE client_id IN (SELECT id FROM public.profile WHERE role = 'client');
 
--- 9. Eliminar perfiles de clientes
+-- 9. Eliminar perfiles de clientes (incluyendo a Óscar o clientes de prueba previos)
 DELETE FROM public.profile 
-WHERE role = 'client';
+WHERE role = 'client' OR name ILIKE '%oscar%' OR surname ILIKE '%oscar%';
+
+-- 10. Políticas RLS para que el Coach pueda eliminar cualquier cliente y sus datos desde la app:
+DROP POLICY IF EXISTS "Coaches can delete client profiles" ON public.profile;
+CREATE POLICY "Coaches can delete client profiles" ON public.profile
+AS PERMISSIVE FOR DELETE TO authenticated
+USING (public.is_coach() OR user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Coaches can delete check_ins" ON public.check_in;
+CREATE POLICY "Coaches can delete check_ins" ON public.check_in
+AS PERMISSIVE FOR DELETE TO authenticated
+USING (public.is_coach() OR profile_id = public.get_profile_id());
+
+DROP POLICY IF EXISTS "Coaches can delete initial_assessments" ON public.initial_assessment;
+CREATE POLICY "Coaches can delete initial_assessments" ON public.initial_assessment
+AS PERMISSIVE FOR DELETE TO authenticated
+USING (public.is_coach() OR profile_id = public.get_profile_id());
+
+DROP POLICY IF EXISTS "Coaches can delete measurements" ON public.measurement;
+CREATE POLICY "Coaches can delete measurements" ON public.measurement
+AS PERMISSIVE FOR DELETE TO authenticated
+USING (public.is_coach() OR profile_id = public.get_profile_id());
+
+DROP POLICY IF EXISTS "Coaches can delete body_photos" ON public.body_photo;
+CREATE POLICY "Coaches can delete body_photos" ON public.body_photo
+AS PERMISSIVE FOR DELETE TO authenticated
+USING (public.is_coach() OR profile_id = public.get_profile_id());

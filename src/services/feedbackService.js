@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { sendSystemNotification } from '../utils/notificationService.js';
+import { isClientDeleted } from '../utils/deletedClients.js';
 
 const isTestEnv = (typeof globalThis !== 'undefined' && globalThis?.process?.env?.NODE_ENV === 'test')
     || (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test');
@@ -920,7 +921,7 @@ export const feedbackService = {
                 .eq('role', 'client')
                 .order('name');
 
-            realClients = profiles || [];
+            realClients = (profiles || []).filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`));
         } catch {
             realClients = [];
         }

@@ -5,6 +5,7 @@ import {
     isDemoClientId,
     getDemoClientById,
 } from './feedbackService.js';
+import { isClientDeleted } from '../utils/deletedClients.js';
 
 /**
  * Servicio de acceso a datos para la vista de check-ins y feedback del coach.
@@ -25,7 +26,7 @@ export const coachCheckInService = {
                 .order('name');
 
             if (!error && data) {
-                realClients = data;
+                realClients = data.filter(c => !isClientDeleted(c.id, `${c.name || ''} ${c.surname || ''}`));
             }
         } catch {
             realClients = [];

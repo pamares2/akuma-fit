@@ -14,7 +14,8 @@ import {
     FiLogIn,
     FiCopy,
     FiCheck,
-    FiUserPlus
+    FiUserPlus,
+    FiTrash2
 } from 'react-icons/fi';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
@@ -55,6 +56,22 @@ export default function Clients() {
     const handleEnterAsClient = (client) => {
         switchClientView(client.id);
         navigate('/app/nutrition');
+    };
+
+    const handleDeleteClient = async (client) => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${client.fullName}? Se borrará toda su información asociada.`)) {
+            return;
+        }
+        await clientManagementService.deleteClient(client.id);
+        reload();
+    };
+
+    const handlePurgeAllClients = async () => {
+        if (!window.confirm('¿Estás seguro de que deseas eliminar TODOS los clientes actuales para dejar la plataforma totalmente limpia?')) {
+            return;
+        }
+        await clientManagementService.purgeAllClients();
+        reload();
     };
 
     const { data: clients, loading, error, reload } = useAsyncData(
@@ -134,6 +151,29 @@ export default function Clients() {
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {clients && clients.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={handlePurgeAllClients}
+                            className="btn-secondary"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                cursor: 'pointer',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                color: '#ef4444',
+                                padding: '0.6rem 1rem',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                transition: 'all 0.2s',
+                            }}
+                            title="Eliminar todos los clientes y dejar la plataforma limpia"
+                        >
+                            <FiTrash2 /> Limpiar todos los clientes
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={handleCopyRegisterLink}
@@ -593,6 +633,29 @@ export default function Clients() {
                                     >
                                         <FiTrendingUp /> Progreso
                                     </Link>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteClient(client)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.45rem',
+                                            fontSize: '0.8rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                                            background: 'rgba(239, 68, 68, 0.08)',
+                                            color: '#ef4444',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.25rem',
+                                            fontWeight: 600,
+                                        }}
+                                        title={`Eliminar cliente ${client.fullName}`}
+                                    >
+                                        <FiTrash2 /> Borrar
+                                    </button>
                                 </div>
                             </div>
                         );

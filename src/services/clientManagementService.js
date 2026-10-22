@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId, getDemoClientById } from './feedbackService.js';
+import { isClientDeleted, markClientDeleted } from '../utils/deletedClients.js';
 
 /**
  * Convierte un cliente de prueba (`DEMO_CHAT_CLIENTS`) al contrato de `Clients.jsx`.
@@ -70,7 +71,7 @@ export const clientManagementService = {
                 .order('name');
 
             if (!error && data) {
-                profiles = data;
+                profiles = data.filter(p => !isClientDeleted(p.id));
             }
         } catch {
             profiles = [];
@@ -148,5 +149,43 @@ export const clientManagementService = {
 
         if (error) throw new Error(error.message);
         return data;
+    },
+
+    /**
+     * Elimina por completo un cliente y todas sus relaciones asociadas en la base de datos
+     * y lo retira instantáneamente de todas las vistas del entrenador.
+     *
+     * @param {number|string} clientId - Id del perfil del cliente.
+     */
+    async deleteClient(clientId) {
+        if (!clientId) return;
+        markClientDeleted(clientId);
+
+        if (isDemoClientId(clientId)) return;
+
+        try {
+            await supabase.from('calendar_event').delete().eq('profile_id', clientId);
+            await supabase.from('training_session').delete().eq('profile_id', clientId);
+            await supabase.from('check_in').delete().eq('profile_id', clientId);
+            await supabase.from('initial_assessment').delete().eq('profile_id', clientId);
+            await supabase.from('measurement').delete().eq('profile_id', clientId);
+            await supabase.from('body_photo').delete().eq('profile_id', clientId);
+            await supabase.from('profile_has_routine').delete().eq('profile', clientId);
+            await supabase.from('profile_has_meal_plan').delete().eq('profile_id', clientId);
+            await supabase.from('coach_has_client').delete().eq('client_id', clientId);
+            await supabase.from('profile').delete().eq('id', clientId);
+        } catch (err) {
+            console.warn('Error eliminando cliente en BD:', err);
+        }
+    },
+
+    /**
+     * Purga y elimina todos los clientes actuales de la aplicación.
+     */
+    async purgeAllClients() {
+        const clients = await this.getAllClients();
+        for (const c of clients) {
+            await this.deleteClient(c.id);
+        }
     },
 };
