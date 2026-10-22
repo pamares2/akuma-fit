@@ -278,7 +278,7 @@ export const dietGeneratorService = {
             if (extraFood) {
                 itemsToInsert.push({
                     slot_id: slot.id,
-                    item_order: itemOrder++,
+                    item_order: itemOrder,
                     food_id: extraFood.id,
                     quantity_g: 120,
                     notes: 'Aporte de fibra y micronutrientes',
