@@ -89,6 +89,22 @@ CREATE POLICY "food_anon_select" ON public.food
 -- ------------------------------------------------------------------------------
 -- 2. ASEGURAR ÍNDICES ÚNICOS PARA IDEMPOTENCIA
 -- ------------------------------------------------------------------------------
+-- Purgar duplicados preexistentes en recipe_food conservando la primera fila
+DELETE FROM public.recipe_food
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM public.recipe_food
+    GROUP BY recipe_id, food_id
+);
+
+-- Purgar duplicados preexistentes en recipe_has_tag conservando la primera fila
+DELETE FROM public.recipe_has_tag
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM public.recipe_has_tag
+    GROUP BY recipe_id, tag_id
+);
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'recipe_food_unique') THEN

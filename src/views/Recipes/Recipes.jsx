@@ -17,7 +17,7 @@ import { recipeService } from '../../services/recipeService.js';
 import { RECIPE_CATEGORIES } from '../../data/defaultRecipes.js';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
-import { recipeServingMacros, formatMacros } from '../../utils/dietMacros.js';
+import { recipeServingMacros, formatMacros, deduplicateIngredients } from '../../utils/dietMacros.js';
 
 /**
  * Listado de recetas de dieta del coach con filtros por comida/categoría,
@@ -169,7 +169,7 @@ function Recipes() {
                     <div className="recipes-grid">
                         {recipes.map(recipe => {
                             const macros = recipeServingMacros(recipe);
-                            const ingredients = recipe.ingredients || [];
+                            const ingredients = deduplicateIngredients(recipe.ingredients || []);
 
                             return (
                                 <div

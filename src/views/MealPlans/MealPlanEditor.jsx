@@ -17,7 +17,7 @@ import useFormSubmission from '../../hooks/useFormSubmission.js';
 import DietItemPicker from '../../components/complex/DietItemPicker/DietItemPicker.jsx';
 import RecipeDetailModal from '../../components/complex/RecipeDetailModal/RecipeDetailModal.jsx';
 import AnefDietWizard from '../../components/complex/AnefDietWizard/AnefDietWizard.jsx';
-import { itemMacros, slotMacros, dayMacros, formatMacros } from '../../utils/dietMacros.js';
+import { itemMacros, slotMacros, dayMacros, formatMacros, deduplicateIngredients } from '../../utils/dietMacros.js';
 
 /**
  * Input de texto editable inline que guarda al perder el foco.
@@ -288,7 +288,7 @@ function PlanAssignment({ plan, onSaved }) {
 function ItemRow({ item, busy, onUpdate, onMove, onRemove, onViewRecipe }) {
     const macros = itemMacros(item);
     const servingsFactor = item.servings && item.servings > 0 ? item.servings : 1;
-    const recipeIngredients = item.recipe?.ingredients || [];
+    const recipeIngredients = deduplicateIngredients(item.recipe?.ingredients || []);
 
     return (
         <div className="diet-item-row">

@@ -10,6 +10,7 @@ import {
     slotMacros,
     dayMacros,
     formatMacros,
+    deduplicateIngredients,
 } from '../../utils/dietMacros.js';
 
 /**
@@ -197,9 +198,9 @@ function Nutrition() {
                                                                         {itemQuantityLabel(item)}
                                                                         {item.notes ? ` · ${item.notes}` : ''}
                                                                     </span>
-                                                                    {item.recipe?.ingredients?.length > 0 && (
+                                                                    {item.recipe && deduplicateIngredients(item.recipe.ingredients || []).length > 0 && (
                                                                         <span className="diet-item-recipe-ingredients">
-                                                                            {item.recipe.ingredients
+                                                                            {deduplicateIngredients(item.recipe.ingredients || [])
                                                                                 .map(ing => `${ing.food?.name} (${Math.round((ing.quantity_g || 0) * (item.servings || 1))}g)`)
                                                                                 .join(' · ')}
                                                                         </span>

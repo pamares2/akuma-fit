@@ -1,3 +1,4 @@
+import { deduplicateIngredients } from './dietMacros.js';
 /**
  * Utilidades para generar la Lista de la Compra Semanal a partir de la Dieta ANEF.
  */
@@ -82,7 +83,7 @@ export function generateShoppingList(mealPlan) {
                     aggregation[name] = (aggregation[name] || 0) + grams;
                 } else if (item.recipe && item.recipe.ingredients) {
                     const portions = Number(item.quantity) || 1;
-                    for (const ing of item.recipe.ingredients) {
+                    for (const ing of deduplicateIngredients(item.recipe.ingredients)) {
                         const name = ing.food?.name || ing.name || 'Ingrediente';
                         const grams = (Number(ing.quantity_g) || 100) * portions;
                         aggregation[name] = (aggregation[name] || 0) + grams;

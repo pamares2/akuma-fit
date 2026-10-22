@@ -5,7 +5,7 @@ import { recipeService } from '../../../services/recipeService.js';
 import { RECIPE_CATEGORIES } from '../../../data/defaultRecipes.js';
 import { useAsyncData } from '../../../hooks/useAsyncData.js';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js';
-import { recipeServingMacros, formatMacros } from '../../../utils/dietMacros.js';
+import { recipeServingMacros, formatMacros, deduplicateIngredients } from '../../../utils/dietMacros.js';
 import RecipeDetailModal from '../RecipeDetailModal/RecipeDetailModal.jsx';
 
 /**
@@ -141,7 +141,7 @@ function DietItemPicker({ onClose, onPickFood, onPickRecipe }) {
                                     </button>
                                 ))
                                 : items.map(recipe => {
-                                    const ingredientsList = (recipe.ingredients || [])
+                                    const ingredientsList = deduplicateIngredients(recipe.ingredients || [])
                                         .map(ing => `${ing.food?.name} (${ing.quantity_g}g)`)
                                         .join(', ');
 

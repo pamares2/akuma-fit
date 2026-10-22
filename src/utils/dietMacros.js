@@ -64,16 +64,58 @@ export function foodMacros(food, quantityG) {
 }
 
 /**
+ * Elimina ingredientes duplicados de una receta para garantizar que cada alimento
+ * aparezca una única vez, evitando que se muestren o calculen dos veces los gramos
+ * y macronutrientes.
+ *
+ * Identifica duplicados por `food.id` (o `food_id`), o por nombre de alimento normalizado.
+ *
+ * @param {Array<Object>} [ingredients] - Lista cruda de ingredientes.
+ * @returns {Array<Object>} Lista de ingredientes únicos sin duplicidades.
+ */
+export function deduplicateIngredients(ingredients) {
+    if (!Array.isArray(ingredients) || ingredients.length === 0) return [];
+
+    const seen = new Set();
+    const result = [];
+
+    for (const ing of ingredients) {
+        if (!ing) continue;
+        const foodId = ing.food_id || ing.food?.id;
+        const foodName = ing.food?.name
+            ? String(ing.food.name).toLowerCase().trim()
+            : (ing.name ? String(ing.name).toLowerCase().trim() : null);
+
+        const key = foodId != null
+            ? `id:${foodId}`
+            : (foodName ? `name:${foodName}` : null);
+
+        if (!key) {
+            result.push(ing);
+            continue;
+        }
+
+        if (!seen.has(key)) {
+            seen.add(key);
+            result.push(ing);
+        }
+    }
+
+    return result;
+}
+
+/**
  * Calcula los macros totales de una receta sumando sus ingredientes. Acepta
  * tanto `recipe.ingredients` como el embed crudo `recipe.recipe_food` de
- * Supabase.
+ * Supabase, deduplicando ingredientes para evitar cálculos dobles.
  *
  * @param {Object} recipe - Receta con ingredientes.
  * @returns {{calories: number, protein: number, carbs: number, fat: number, fiber: number}} Macros totales.
  */
 export function recipeTotalMacros(recipe) {
-    const ingredients = recipe.ingredients
-        || (recipe.recipe_food || []).map(rel => rel);
+    const raw = recipe?.ingredients
+        || (recipe?.recipe_food || []).map(rel => rel);
+    const ingredients = deduplicateIngredients(raw);
 
     return sumMacros(ingredients.map(ingredient => foodMacros(ingredient.food, ingredient.quantity_g)));
 }

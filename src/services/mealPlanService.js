@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { DEFAULT_RECIPES } from '../data/defaultRecipes.js';
 import { recipeService } from './recipeService.js';
+import { deduplicateIngredients } from '../utils/dietMacros.js';
 import { DEMO_CHAT_CLIENTS, isDemoClientId, getDemoClientById } from './feedbackService.js';
 import { assignDemoPlan, unassignDemoPlan, getAssignedPlanIdsForDemoClient, getAssignedDemoClientsForPlan, buildDefaultDemoMealPlan } from '../data/demoClientPlans.js';
 
@@ -39,18 +40,46 @@ function normalizeEmbeddedRecipe(recipe) {
         ? DEFAULT_RECIPES.find(r => r.name.toLowerCase().trim() === cleanName)
         : null;
 
-    const dbIngredients = (recipe.recipe_food || [])
-        .filter(rel => rel.food)
+    const rawDbIngredients = (recipe.recipe_food || [])
+        .filter(rel => rel && rel.food)
         .map(rel => ({
             id: rel.id,
             food: rel.food,
+            food_id: rel.food_id || rel.food?.id,
             quantity_g: rel.quantity_g,
             notes: rel.notes,
         }));
 
+    const dbIngredients = deduplicateIngredients(rawDbIngredients);
+
+    // Si había filas duplicadas en la BD para la receta, limpiar en segundo plano
+    if (recipe.id && rawDbIngredients.length > dbIngredients.length) {
+        const seenFoodIds = new Set();
+        const duplicateRowIds = [];
+        for (const row of recipe.recipe_food || []) {
+            const fid = row.food_id || row.food?.id;
+            if (fid != null) {
+                if (seenFoodIds.has(fid)) {
+                    if (row.id) duplicateRowIds.push(row.id);
+                } else {
+                    seenFoodIds.add(fid);
+                }
+            }
+        }
+        if (duplicateRowIds.length > 0) {
+            supabase
+                .from('recipe_food')
+                .delete()
+                .in('id', duplicateRowIds)
+                .then(() => {})
+                .catch(() => {});
+        }
+    }
+
+    const defaultIngredients = deduplicateIngredients(defaultMatch?.ingredients || []);
     const ingredients = dbIngredients.length > 0
         ? dbIngredients
-        : (defaultMatch?.ingredients || []);
+        : defaultIngredients;
 
     return {
         ...recipe,

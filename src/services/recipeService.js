@@ -1,6 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
 import { DEFAULT_RECIPES } from '../data/defaultRecipes.js';
+import { deduplicateIngredients } from '../utils/dietMacros.js';
 
 const RECIPE_SELECT = `
     *,
@@ -35,21 +36,66 @@ function findDefaultByName(name) {
  * @param {Object} recipe - Fila de `recipe` con embeds.
  * @returns {Object} Receta con `ingredients`, `tags` y `category`.
  */
+
+/**
+ * Limpia en segundo plano filas duplicadas en `public.recipe_food` si existen
+ * múltiples entradas con el mismo `food_id` para la misma receta.
+ *
+ * @param {number} recipeId - Id de la receta.
+ * @param {Array<Object>} [recipeFoodRows=[]] - Filas de `recipe_food`.
+ */
+async function cleanDuplicateRecipeFoodInDb(recipeId, recipeFoodRows = []) {
+    if (!recipeId || typeof recipeId !== 'number' || !Array.isArray(recipeFoodRows) || recipeFoodRows.length === 0) return;
+    try {
+        const seenFoodIds = new Set();
+        const duplicateRowIds = [];
+
+        for (const row of recipeFoodRows) {
+            const foodId = row.food_id || row.food?.id;
+            if (foodId != null) {
+                if (seenFoodIds.has(foodId)) {
+                    if (row.id) duplicateRowIds.push(row.id);
+                } else {
+                    seenFoodIds.add(foodId);
+                }
+            }
+        }
+
+        if (duplicateRowIds.length > 0) {
+            await supabase
+                .from('recipe_food')
+                .delete()
+                .in('id', duplicateRowIds);
+        }
+    } catch (err) {
+        console.warn('Aviso al purgar filas duplicadas de recipe_food:', err?.message);
+    }
+}
+
 function mapRecipe(recipe) {
+
     const defaultMatch = findDefaultByName(recipe.name);
 
-    const dbIngredients = (recipe.recipe_food || [])
-        .filter(rel => rel.food)
+    const rawDbIngredients = (recipe.recipe_food || [])
+        .filter(rel => rel && rel.food)
         .map(rel => ({
             id: rel.id,
             food: rel.food,
+            food_id: rel.food_id || rel.food?.id,
             quantity_g: rel.quantity_g,
             notes: rel.notes,
         }));
 
+    const dbIngredients = deduplicateIngredients(rawDbIngredients);
+
+    if (recipe.id && rawDbIngredients.length > dbIngredients.length) {
+        cleanDuplicateRecipeFoodInDb(recipe.id, recipe.recipe_food);
+    }
+
+    const defaultIngredients = deduplicateIngredients(defaultMatch?.ingredients || []);
     const ingredients = dbIngredients.length > 0
         ? dbIngredients
-        : (defaultMatch?.ingredients || []);
+        : defaultIngredients;
 
     const dbTags = (recipe.recipe_has_tag || []).map(rel => rel.tag).filter(Boolean);
     const tags = dbTags.length > 0 ? dbTags : (defaultMatch?.tags || []);
@@ -154,7 +200,7 @@ async function setIngredients(recipeId, ingredients) {
 
     if (deleteError) throw new Error(deleteError.message);
 
-    const validIngredients = (ingredients || []).filter(ing => ing.food_id);
+    const validIngredients = deduplicateIngredients((ingredients || []).filter(ing => ing && ing.food_id));
 
     if (validIngredients.length > 0) {
         const { error: insertError } = await supabase
@@ -245,7 +291,7 @@ async function resolveIngredientFoodIds(ingredients, profileId = null) {
         }
     }
 
-    return resolved;
+    return deduplicateIngredients(resolved);
 }
 
 /**
@@ -361,7 +407,8 @@ export const recipeService = {
             // Sin sesión o perfil no requerido para catálogo base
         }
 
-        const resolvedIngredients = await resolveIngredientFoodIds(recipe.ingredients, profileId);
+        const cleanRecipeIngredients = deduplicateIngredients(recipe.ingredients || []);
+        const resolvedIngredients = await resolveIngredientFoodIds(cleanRecipeIngredients, profileId);
 
         const { data: created, error } = await supabase
             .from('recipe')

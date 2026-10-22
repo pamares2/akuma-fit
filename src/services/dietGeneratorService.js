@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { DEFAULT_RECIPES } from '../data/defaultRecipes.js';
 import { recipeService } from './recipeService.js';
-import { recipeServingMacros } from '../utils/dietMacros.js';
+import { recipeServingMacros, deduplicateIngredients } from '../utils/dietMacros.js';
 
 /**
  * Generador automático inteligente de dietas y planes de alimentación
@@ -489,6 +489,7 @@ export const dietGeneratorService = {
                 );
 
                 if (candidateRecipe) {
+                    candidateRecipe.ingredients = deduplicateIngredients(candidateRecipe.ingredients || []);
                     try {
                         const persistedRecipe = await recipeService.ensurePersisted(candidateRecipe);
                         const baseMacros = recipeServingMacros(candidateRecipe);

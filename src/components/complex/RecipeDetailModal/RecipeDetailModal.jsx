@@ -4,6 +4,7 @@ import {
     recipeTotalMacros,
     recipeServingMacros,
     formatMacros,
+    deduplicateIngredients,
 } from '../../../utils/dietMacros.js';
 
 /**
@@ -18,13 +19,13 @@ import {
 function RecipeDetailModal({ recipe, onClose, onEdit }) {
     if (!recipe) return null;
 
-    const ingredients = recipe.ingredients
+    const ingredients = deduplicateIngredients(recipe.ingredients
         || (recipe.recipe_food || []).filter(rel => rel.food).map(rel => ({
             id: rel.id,
             food: rel.food,
             quantity_g: rel.quantity_g,
             notes: rel.notes,
-        }));
+        })));
 
     const normalizedRecipe = { ...recipe, ingredients };
     const totalMacros = recipeTotalMacros(normalizedRecipe);

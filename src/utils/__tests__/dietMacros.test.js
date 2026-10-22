@@ -9,6 +9,7 @@ import {
     slotMacros,
     dayMacros,
     formatMacros,
+    deduplicateIngredients,
 } from '../dietMacros.js';
 
 const FOOD = { calories: 200, protein: 20, carbs: 10, fat: 5, fiber: 2 };
@@ -124,5 +125,54 @@ describe('formatMacros', () => {
 
     it('devuelve guion largo si no hay macros', () => {
         expect(formatMacros(null)).toBe('—');
+    });
+});
+
+describe('deduplicateIngredients', () => {
+    it('elimina ingredientes duplicados por food.id', () => {
+        const raw = [
+            { food_id: 1, food: { id: 1, name: 'Avena' }, quantity_g: 60 },
+            { food_id: 2, food: { id: 2, name: 'Claras' }, quantity_g: 180 },
+            { food_id: 1, food: { id: 1, name: 'Avena' }, quantity_g: 60 },
+        ];
+        const result = deduplicateIngredients(raw);
+        expect(result).toHaveLength(2);
+        expect(result.map(i => i.food_id)).toEqual([1, 2]);
+    });
+
+    it('elimina duplicados por nombre de alimento normalizado si no hay id', () => {
+        const raw = [
+            { food: { name: '  Copos de Avena Integrales  ' }, quantity_g: 50 },
+            { food: { name: 'copos de avena integrales' }, quantity_g: 50 },
+            { food: { name: 'Plátano' }, quantity_g: 100 },
+        ];
+        const result = deduplicateIngredients(raw);
+        expect(result).toHaveLength(2);
+        expect(result[0].food.name).toBe('  Copos de Avena Integrales  ');
+        expect(result[1].food.name).toBe('Plátano');
+    });
+
+    it('retorna array vacío ante entradas nulas o vacías', () => {
+        expect(deduplicateIngredients(null)).toEqual([]);
+        expect(deduplicateIngredients(undefined)).toEqual([]);
+        expect(deduplicateIngredients([])).toEqual([]);
+    });
+
+    it('evita cálculo duplicado de calorías en recipeTotalMacros cuando hay filas duplicadas', () => {
+        const foodAvena = { id: 10, name: 'Avena', calories: 370, protein: 13, carbs: 60, fat: 7 };
+        const foodClaras = { id: 11, name: 'Claras', calories: 50, protein: 11, carbs: 1, fat: 0 };
+        const recipeWithDups = {
+            name: 'Tortitas de avena',
+            ingredients: [
+                { food: foodAvena, food_id: 10, quantity_g: 100 },
+                { food: foodClaras, food_id: 11, quantity_g: 100 },
+                // Duplicados
+                { food: foodAvena, food_id: 10, quantity_g: 100 },
+                { food: foodClaras, food_id: 11, quantity_g: 100 },
+            ],
+        };
+        const total = recipeTotalMacros(recipeWithDups);
+        // Debe ser 370 + 50 = 420 kcal, NO 840 kcal
+        expect(total.calories).toBe(420);
     });
 });
