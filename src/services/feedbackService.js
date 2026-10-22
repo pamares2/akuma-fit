@@ -132,9 +132,9 @@ export const DEMO_CHAT_CLIENTS = [
             created_at: '2026-09-25T10:00:00.000Z',
         },
         measurements: [
-            { id: 8001, profile_id: 'demo-client-1', weight: 78.4, weight_kg: 78.4, body_fat: 14.2, created_at: '2026-10-20T08:00:00.000Z' },
-            { id: 8002, profile_id: 'demo-client-1', weight: 79.1, weight_kg: 79.1, body_fat: 14.8, created_at: '2026-10-13T08:00:00.000Z' },
-            { id: 8003, profile_id: 'demo-client-1', weight: 79.9, weight_kg: 79.9, body_fat: 15.4, created_at: '2026-10-06T08:00:00.000Z' },
+            { id: 8001, profile_id: 'demo-client-1', weight: 78.4, weight_kg: 78.4, chest: 103.5, waist: 81.2, hip: 96.0, body_fat: 14.2, created_at: '2026-10-20T08:00:00.000Z' },
+            { id: 8002, profile_id: 'demo-client-1', weight: 79.1, weight_kg: 79.1, chest: 103.8, waist: 82.4, hip: 96.5, body_fat: 14.8, created_at: '2026-10-13T08:00:00.000Z' },
+            { id: 8003, profile_id: 'demo-client-1', weight: 79.9, weight_kg: 79.9, chest: 104.0, waist: 83.6, hip: 97.2, body_fat: 15.4, created_at: '2026-10-06T08:00:00.000Z' },
         ],
         checkIns: [
             {
@@ -220,9 +220,9 @@ export const DEMO_CHAT_CLIENTS = [
             created_at: '2026-09-20T11:30:00.000Z',
         },
         measurements: [
-            { id: 8101, profile_id: 'demo-client-2', weight: 61.2, weight_kg: 61.2, body_fat: 19.5, created_at: '2026-10-21T08:15:00.000Z' },
-            { id: 8102, profile_id: 'demo-client-2', weight: 60.8, weight_kg: 60.8, body_fat: 19.4, created_at: '2026-10-14T08:15:00.000Z' },
-            { id: 8103, profile_id: 'demo-client-2', weight: 60.3, weight_kg: 60.3, body_fat: 19.2, created_at: '2026-10-07T08:15:00.000Z' },
+            { id: 8101, profile_id: 'demo-client-2', weight: 61.2, weight_kg: 61.2, chest: 90.0, waist: 66.5, hip: 98.4, body_fat: 19.5, created_at: '2026-10-21T08:15:00.000Z' },
+            { id: 8102, profile_id: 'demo-client-2', weight: 60.8, weight_kg: 60.8, chest: 89.8, waist: 66.4, hip: 97.6, body_fat: 19.4, created_at: '2026-10-14T08:15:00.000Z' },
+            { id: 8103, profile_id: 'demo-client-2', weight: 60.3, weight_kg: 60.3, chest: 89.5, waist: 66.2, hip: 96.8, body_fat: 19.2, created_at: '2026-10-07T08:15:00.000Z' },
         ],
         checkIns: [
             {
