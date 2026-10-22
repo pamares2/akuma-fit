@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiPlus, FiTrash2, FiCalendar, FiUser } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiCalendar, FiUser, FiZap } from 'react-icons/fi';
 import Button from '../../components/primitives/Button/Button.jsx';
 import { mealPlanService } from '../../services/mealPlanService.js';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 
 /**
- * Listado de planes de alimentación (dietas) del coach, con creación y
+ * Listado de planes de alimentación (dietas ANEF) del coach, con creación y
  * borrado.
  */
 function MealPlans() {
@@ -34,10 +34,12 @@ function MealPlans() {
         <div className="diet-page">
             <div className="page-container">
                 <div className="page-header">
-                    <h1 className="page-title">Dietas</h1>
+                    <div>
+                        <h1 className="page-title">Dietas Personalizadas (ANEF)</h1>
+                    </div>
                     <Button onClick={() => navigate('/app/dietas/new')}>
                         <FiPlus size={18} />
-                        <span>Nuevo plan</span>
+                        <span>Nueva Dieta ANEF</span>
                     </Button>
                 </div>
 
@@ -46,8 +48,12 @@ function MealPlans() {
                 ) : error ? (
                     <div className="error-message">{error}</div>
                 ) : plans.length === 0 ? (
-                    <div className="empty-state">
-                        <p>Aún no hay planes de alimentación. Crea el primero.</p>
+                    <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                        <p style={{ margin: 0 }}>Aún no hay dietas personalizadas creadas. Calcula la primera con el sistema ANEF (5 pasos).</p>
+                        <Button onClick={() => navigate('/app/dietas/new')}>
+                            <FiZap size={18} />
+                            <span>Abrir Calculadora de Dieta ANEF</span>
+                        </Button>
                     </div>
                 ) : (
                     <div className="recipes-grid">

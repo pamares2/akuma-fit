@@ -12,7 +12,6 @@ import {
 } from 'react-icons/fi';
 import { mealPlanService } from '../../services/mealPlanService.js';
 import { assessmentService } from '../../services/assessmentService.js';
-import { dietGeneratorService } from '../../services/dietGeneratorService.js';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import useFormSubmission from '../../hooks/useFormSubmission.js';
 import DietItemPicker from '../../components/complex/DietItemPicker/DietItemPicker.jsx';
@@ -121,7 +120,7 @@ function PlanHeaderForm({ plan, onSaved }) {
                 />
             </div>
 
-            <h3 className="diet-form-subtitle">Macros objetivo por día (opcional)</h3>
+            <h3 className="diet-form-subtitle">Macros objetivo por día (calculados por ANEF)</h3>
             <div className="diet-form-grid diet-form-macros">
                 <div className="form-field">
                     <label>Kcal</label>
@@ -177,158 +176,6 @@ function PlanHeaderForm({ plan, onSaved }) {
                     {submitting ? 'Guardando...' : 'Guardar datos del plan'}
                 </button>
             </div>
-        </div>
-    );
-}
-
-/**
- * Tarjeta del Generador Automático de Dieta según macros.
- */
-function AutoDietGeneratorCard({ plan, onGenerated }) {
-    const [calories, setCalories] = useState(plan.target_calories || 2200);
-    const [protein, setProtein] = useState(plan.target_protein || 160);
-    const [carbs, setCarbs] = useState(plan.target_carbs || 240);
-    const [fat, setFat] = useState(plan.target_fat || 65);
-    const [mealsCount, setMealsCount] = useState(4);
-    const [mode, setMode] = useState('recipes');
-    const [generating, setGenerating] = useState(false);
-    const [genError, setGenError] = useState(null);
-    const [genSuccess, setGenSuccess] = useState(false);
-
-    const handleGenerate = async () => {
-        setGenerating(true);
-        setGenError(null);
-        setGenSuccess(false);
-
-        try {
-            await dietGeneratorService.generateDay(plan.id, {
-                calories: Number(calories),
-                protein: Number(protein),
-                carbs: Number(carbs),
-                fat: Number(fat),
-                mealsCount: Number(mealsCount),
-                mode,
-            });
-            setGenSuccess(true);
-            onGenerated();
-        } catch (err) {
-            setGenError(err.message);
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    return (
-        <div className="form-section-card" style={{
-            border: '1px solid var(--color-primary-border)',
-            background: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-alt) 100%)',
-            boxShadow: 'var(--anime-aura-glow, none)',
-            marginTop: '1.5rem',
-            marginBottom: '1.5rem'
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <h2 className="section-subtitle" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FiZap style={{ color: 'var(--color-primary)' }} /> Generador Automático de Dieta y Recetas
-                </h2>
-                <span className="anime-badge">IA / Automático</span>
-            </div>
-
-            <p className="section-help" style={{ marginBottom: '1.25rem' }}>
-                Calcula automáticamente todas las comidas del día con recetas completas de dieta (o alimentos por gramos) cuadradas a los macros del cliente.
-            </p>
-
-            <div className="diet-form-grid diet-form-macros" style={{ marginBottom: '1rem' }}>
-                <div className="form-field">
-                    <label>Kcal Objetivo</label>
-                    <input
-                        type="number"
-                        min="500"
-                        value={calories}
-                        onChange={(e) => setCalories(e.target.value)}
-                        className="form-field-input"
-                    />
-                </div>
-                <div className="form-field">
-                    <label>Proteínas (g)</label>
-                    <input
-                        type="number"
-                        min="20"
-                        value={protein}
-                        onChange={(e) => setProtein(e.target.value)}
-                        className="form-field-input"
-                    />
-                </div>
-                <div className="form-field">
-                    <label>Carbohidratos (g)</label>
-                    <input
-                        type="number"
-                        min="20"
-                        value={carbs}
-                        onChange={(e) => setCarbs(e.target.value)}
-                        className="form-field-input"
-                    />
-                </div>
-                <div className="form-field">
-                    <label>Grasas (g)</label>
-                    <input
-                        type="number"
-                        min="10"
-                        value={fat}
-                        onChange={(e) => setFat(e.target.value)}
-                        className="form-field-input"
-                    />
-                </div>
-            </div>
-
-            <div className="diet-form-grid" style={{ marginBottom: '1.25rem' }}>
-                <div className="form-field">
-                    <label>Número de comidas al día</label>
-                    <select
-                        className="category-select"
-                        value={mealsCount}
-                        onChange={(e) => setMealsCount(Number(e.target.value))}
-                    >
-                        <option value={3}>3 Comidas (Desayuno, Comida, Cena)</option>
-                        <option value={4}>4 Comidas (Desayuno, Comida, Merienda, Cena)</option>
-                        <option value={5}>5 Comidas (Desayuno, Media Mañana, Comida, Merienda, Cena)</option>
-                    </select>
-                </div>
-
-                <div className="form-field">
-                    <label>Formato de generación</label>
-                    <select
-                        className="category-select"
-                        value={mode}
-                        onChange={(e) => setMode(e.target.value)}
-                    >
-                        <option value="recipes">Recetas completas de dieta (con ingredientes y elaboración)</option>
-                        <option value="foods">Alimentos individuales desglosados por gramos</option>
-                    </select>
-                </div>
-            </div>
-
-            {genError && <div className="error-message">{genError}</div>}
-            {genSuccess && (
-                <div className="success-message" style={{ marginBottom: '1rem' }}>
-                    ✓ ¡Día generado automáticamente con éxito! Desplázate abajo para ver las comidas y recetas.
-                </div>
-            )}
-
-            <button
-                className="btn-primary"
-                disabled={generating || !calories || !protein || !carbs || !fat}
-                onClick={handleGenerate}
-                style={{ width: '100%', justifyContent: 'center', padding: '0.85rem' }}
-            >
-                <FiZap size={18} />
-                <span>
-                    {generating
-                        ? 'Calculando y generando comidas...'
-                        : mode === 'recipes'
-                            ? '⚡ Generar Día con Recetas de Dieta'
-                            : '⚡ Generar Día con Alimentos por Gramos'}
-                </span>
-            </button>
         </div>
     );
 }
@@ -524,9 +371,8 @@ function ItemRow({ item, busy, onUpdate, onMove, onRemove, onViewRecipe }) {
 }
 
 /**
- * Editor de un plan de alimentación: datos generales, asignación de clientes
- * y estructura de días -> comidas -> ítems. En modo creación delega en
- * {@link PlanCreate}.
+ * Editor de un plan de alimentación basado exclusivamente en la Calculadora ANEF
+ * (5 pasos): datos generales, asignación de clientes y estructura de días -> comidas -> ítems.
  */
 function MealPlanEditor() {
     const navigate = useNavigate();
@@ -611,7 +457,7 @@ function MealPlanEditor() {
                             <span>
                                 {showAnefWizard
                                     ? 'Ocultar Calculadora ANEF (5 Pasos)'
-                                    : '⚡ Calculadora ANEF por Datos del Cliente'}
+                                    : '⚡ Recalcular Dieta ANEF (5 Pasos)'}
                             </span>
                         </button>
                         <button className="btn-outline" onClick={() => navigate('/app/dietas')}>
@@ -636,7 +482,6 @@ function MealPlanEditor() {
                 )}
 
                 <PlanHeaderForm key={`header-${plan.id}-${reloadKey}`} plan={plan} onSaved={reload} />
-                <AutoDietGeneratorCard key={`autogen-${plan.id}-${reloadKey}`} plan={plan} onGenerated={reload} />
                 <PlanAssignment key={`assign-${plan.id}-${reloadKey}`} plan={plan} onSaved={reload} />
 
                 <div className="diet-days">
@@ -800,8 +645,8 @@ function MealPlanEditor() {
 }
 
 /**
- * Formulario de creación de un plan con la Calculadora Personalizada ANEF
- * (5 pasos con datos reales del cliente) o creación rápida por macros.
+ * Creación de un plan exclusivamente con la Calculadora Personalizada ANEF
+ * (5 pasos con datos reales del cliente).
  */
 function PlanCreate() {
     const navigate = useNavigate();
