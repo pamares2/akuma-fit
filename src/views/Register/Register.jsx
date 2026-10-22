@@ -85,8 +85,12 @@ function Register() {
         setLoading(true);
 
         try {
-            await authService.signUp(email, password);
+            const data = await authService.signUp(email, password);
             setLoading(false);
+            if (data?.session) {
+                window.location.href = '/assessment';
+                return;
+            }
             setIsRegistered(true);
         } catch (error) {
             setLoading(false);

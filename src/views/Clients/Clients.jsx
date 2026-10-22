@@ -11,7 +11,10 @@ import {
     FiX,
     FiClipboard,
     FiMessageSquare,
-    FiLogIn
+    FiLogIn,
+    FiCopy,
+    FiCheck,
+    FiUserPlus
 } from 'react-icons/fi';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import StatCard from '../../components/complex/StatCard/StatCard.jsx';
@@ -29,6 +32,25 @@ export default function Clients() {
     const [assessmentModalData, setAssessmentModalData] = useState(null);
     const [loadingAssessment, setLoadingAssessment] = useState(false);
     const [selectedFeedbackClient, setSelectedFeedbackClient] = useState(null);
+    const [copiedLink, setCopiedLink] = useState(false);
+
+    const handleCopyRegisterLink = () => {
+        const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/register` : '/register';
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(registerUrl)
+                .then(() => {
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2500);
+                })
+                .catch(() => {
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2500);
+                });
+        } else {
+            setCopiedLink(true);
+            setTimeout(() => setCopiedLink(false), 2500);
+        }
+    };
 
     const handleEnterAsClient = (client) => {
         switchClientView(client.id);
@@ -111,9 +133,33 @@ export default function Clients() {
                         Supervisa el progreso, el feedback, las valoraciones y la asignación de planes de tus atletas.
                     </p>
                 </div>
-                <Link to="/app/plans" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                    <FiClipboard /> Crear Nueva Rutina
-                </Link>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button
+                        type="button"
+                        onClick={handleCopyRegisterLink}
+                        className="btn-secondary"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            cursor: 'pointer',
+                            background: 'var(--color-bg-secondary, #181b20)',
+                            border: '1px solid var(--color-border, #3a3f4b)',
+                            color: copiedLink ? '#10b981' : '#ffffff',
+                            padding: '0.6rem 1rem',
+                            borderRadius: '8px',
+                            fontWeight: 500,
+                            transition: 'all 0.2s',
+                        }}
+                        title="Copiar enlace directo de registro para enviar a clientes"
+                    >
+                        {copiedLink ? <FiCheck /> : <FiUserPlus />}
+                        {copiedLink ? '¡Enlace copiado!' : 'Copiar enlace de registro'}
+                    </button>
+                    <Link to="/app/plans" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+                        <FiClipboard /> Crear Nueva Rutina
+                    </Link>
+                </div>
             </div>
 
             {/* Tarjetas de Estadísticas */}
@@ -181,16 +227,97 @@ export default function Clients() {
             {filteredClients.length === 0 ? (
                 <div style={{
                     textAlign: 'center',
-                    padding: '3rem 1rem',
+                    padding: '3rem 1.5rem',
                     background: 'var(--color-bg-secondary, #181b20)',
                     borderRadius: '12px',
-                    border: '1px dashed var(--color-border, #282c34)'
+                    border: '1px dashed var(--color-border, #282c34)',
+                    maxWidth: '680px',
+                    margin: '0 auto'
                 }}>
-                    <FiUser size={40} style={{ color: '#6b7280', marginBottom: '0.75rem' }} />
-                    <h3 style={{ margin: '0 0 0.5rem' }}>No se encontraron clientes</h3>
-                    <p style={{ color: '#9aa0a6', margin: 0, fontSize: '0.9rem' }}>
-                        {searchTerm ? 'Intenta modificar el término de búsqueda.' : 'Aún no hay clientes registrados bajo este filtro.'}
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        background: 'rgba(230, 57, 70, 0.12)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--color-primary, #e63946)',
+                        marginBottom: '1rem',
+                    }}>
+                        <FiUserPlus size={32} />
+                    </div>
+                    <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.3rem' }}>
+                        {searchTerm ? 'No se encontraron clientes' : 'Cartera de clientes lista'}
+                    </h3>
+                    <p style={{ color: '#9aa0a6', margin: '0 auto 1.5rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                        {searchTerm
+                            ? 'Intenta modificar el término de búsqueda.'
+                            : 'Tu plataforma está limpia y preparada para registrar atletas reales. Comparte el enlace de registro con tu cliente para que cree su cuenta y complete su valoración inicial.'}
                     </p>
+
+                    {!searchTerm && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                background: '#0d0f12',
+                                border: '1px solid var(--color-border, #282c34)',
+                                borderRadius: '8px',
+                                padding: '0.5rem 0.75rem',
+                                width: '100%',
+                                maxWidth: '460px',
+                                gap: '0.5rem'
+                            }}>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={typeof window !== 'undefined' ? `${window.location.origin}/register` : '/register'}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#ffffff',
+                                        width: '100%',
+                                        fontSize: '0.875rem',
+                                        outline: 'none',
+                                        fontFamily: 'monospace'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCopyRegisterLink}
+                                    className="btn-primary"
+                                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+                                >
+                                    {copiedLink ? <FiCheck /> : <FiCopy />}
+                                    {copiedLink ? 'Copiado' : 'Copiar'}
+                                </button>
+                            </div>
+
+                            <div style={{
+                                textAlign: 'left',
+                                marginTop: '0.5rem',
+                                padding: '1rem',
+                                background: '#13161c',
+                                borderRadius: '8px',
+                                border: '1px solid #222630',
+                                width: '100%',
+                                maxWidth: '460px',
+                                fontSize: '0.85rem',
+                                color: '#9aa0a6'
+                            }}>
+                                <div style={{ fontWeight: 600, color: '#e5e7eb', marginBottom: '0.4rem' }}>
+                                    Flujo recomendado para demostración con tu cliente:
+                                </div>
+                                <ol style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                    <li>Pasa este enlace a tu cliente (o pruébalo en una ventana privada de incógnito).</li>
+                                    <li>Tu cliente crea su cuenta con email y contraseña.</li>
+                                    <li>Completa su valoración inicial (objetivos, nivel, disponibilidad, etc.).</li>
+                                    <li>Aparecerá aquí automáticamente para que le asignes su rutina y dieta ANEF.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>

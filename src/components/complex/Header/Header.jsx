@@ -33,7 +33,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
         }
     };
 
-    const canSwitchDemoView = realUserRole === 'coach' || Boolean(impersonatedClientId);
+    const canSwitchDemoView = (realUserRole === 'coach' || Boolean(impersonatedClientId)) && DEMO_CHAT_CLIENTS.length > 0;
 
     return (
         <header className="header" role="banner">

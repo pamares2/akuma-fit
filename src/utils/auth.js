@@ -2,7 +2,10 @@ import { supabase } from '../supabaseClient.js';
 
 export const IMPERSONATE_STORAGE_KEY = 'akuma_impersonate_client_id';
 
-const DEMO_PROFILES = {
+const isTestEnv = (typeof globalThis !== 'undefined' && globalThis?.process?.env?.NODE_ENV === 'test')
+    || (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test');
+
+const RAW_DEMO_PROFILES = {
     'demo-client-1': {
         id: 'demo-client-1',
         name: 'Carlos',
@@ -19,9 +22,15 @@ const DEMO_PROFILES = {
     },
 };
 
+export const DEMO_PROFILES = isTestEnv ? RAW_DEMO_PROFILES : {};
+
 export function getImpersonatedClientId() {
     if (typeof window === 'undefined' || !window.localStorage) return null;
     try {
+        if (!isTestEnv) {
+            window.localStorage.removeItem(IMPERSONATE_STORAGE_KEY);
+            return null;
+        }
         const val = window.localStorage.getItem(IMPERSONATE_STORAGE_KEY);
         return val && DEMO_PROFILES[val] ? val : null;
     } catch {

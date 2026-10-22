@@ -199,10 +199,10 @@ export const CLIENT_QUICK_TEMPLATES = [
 ];
 
 /**
- * Dos clientes completos de prueba 1 a 1 integrados en toda la app (Clientes,
- * Check-Ins, Chat 1:1 y Calculadora de Dieta ANEF).
+ * Dos clientes completos de prueba 1 a 1 para entornos de test automatizados.
+ * En producción se mantiene vacío para permitir la gestión y onboarding de atletas reales.
  */
-export const DEMO_CHAT_CLIENTS = [
+const RAW_DEMO_CHAT_CLIENTS = [
     {
         id: 'demo-client-1',
         isDemo: true,
@@ -380,6 +380,8 @@ export const DEMO_CHAT_CLIENTS = [
         ],
     },
 ];
+
+export const DEMO_CHAT_CLIENTS = isTestEnv ? RAW_DEMO_CHAT_CLIENTS : [];
 
 /**
  * Mensajes iniciales por defecto para los 2 clientes de prueba.
@@ -1003,7 +1005,7 @@ export const feedbackService = {
             }
         }
 
-        if (includeDemo || conversations.length === 0) {
+        if ((includeDemo || conversations.length === 0) && DEMO_CHAT_CLIENTS.length > 0) {
             const demoStore = loadDemoStore();
             for (const demoClient of DEMO_CHAT_CLIENTS) {
                 const msgs = demoStore[demoClient.id] || [];

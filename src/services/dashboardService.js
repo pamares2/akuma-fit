@@ -17,6 +17,7 @@ const calculateAdherence = (checkIns, field) => {
 };
 
 function getLocalCompletedDemoSessions() {
+    if (DEMO_CHAT_CLIENTS.length === 0) return [];
     if (typeof window === 'undefined' || !window.localStorage) return [];
     const sessions = [];
     try {
@@ -74,9 +75,9 @@ export const dashboardService = {
             // Silently fall back to demo counts
         }
 
-        // Integrar los clientes de prueba
+        // Integrar los clientes de prueba si existen
         const demoClientsCount = DEMO_CHAT_CLIENTS.length;
-        const demoWeeklyCheckIns = 2; // Carlos Pérez y Laura Gómez tienen check-in activo
+        const demoWeeklyCheckIns = demoClientsCount > 0 ? 2 : 0;
 
         return {
             activeClients: activeClients + demoClientsCount,
@@ -207,18 +208,19 @@ export const dashboardService = {
             // Silently proceed
         }
 
-        // Sumar datos de los 2 clientes de prueba (Carlos Pérez y Laura Gómez)
+        // Sumar datos de los clientes de prueba si existen en el entorno
         const demoClientsCount = DEMO_CHAT_CLIENTS.length;
         const totalActiveClients = activeClientsCount + demoClientsCount;
-        const totalWeeklyCheckIns = thisWeek + 2; // Ambos enviaron check-in en la última semana
-        const totalLastWeek = lastWeek + 2;
-        const totalClientsWithCheckIn = clientsThisWeek + 2;
+        const demoCheckInsCount = demoClientsCount > 0 ? 2 : 0;
+        const totalWeeklyCheckIns = thisWeek + demoCheckInsCount;
+        const totalLastWeek = lastWeek + demoCheckInsCount;
+        const totalClientsWithCheckIn = clientsThisWeek + demoCheckInsCount;
         const clientsWithoutCheckIn = Math.max(0, totalActiveClients - totalClientsWithCheckIn);
 
         // Sesiones completadas (demo sessions + localStorage)
         const localSessions = getLocalCompletedDemoSessions();
-        const defaultDemoSessionsCount = 5; // Sesiones completadas de la semana de Carlos y Laura
-        const totalSessions = sessionsThisWeek + defaultDemoSessionsCount + localSessions.length;
+        const defaultDemoSessionsCount = demoClientsCount > 0 ? 5 : 0;
+        const totalSessions = sessionsThisWeek + defaultDemoSessionsCount + (demoClientsCount > 0 ? localSessions.length : 0);
 
         const trend = totalLastWeek > 0
             ? Math.round(((totalWeeklyCheckIns - totalLastWeek) / totalLastWeek) * 100)
