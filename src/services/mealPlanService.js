@@ -218,14 +218,29 @@ export const mealPlanService = {
      * @returns {Promise<Array>} Lista de clientes.
      */
     async getClients() {
-        const { data, error } = await supabase
-            .from('profile')
-            .select('id, name, surname, gender, birthdate')
-            .eq('role', 'client')
-            .order('name');
+        let realClients;
+        try {
+            const { data, error } = await supabase
+                .from('profile')
+                .select('id, name, surname, gender, birthdate')
+                .eq('role', 'client')
+                .order('name');
 
-        if (error) throw new Error(error.message);
-        return data || [];
+            realClients = (!error && data) ? data : [];
+        } catch {
+            realClients = [];
+        }
+
+        const demoClients = DEMO_CHAT_CLIENTS.map(c => ({
+            id: c.id,
+            name: c.name,
+            surname: c.surname,
+            gender: c.gender,
+            birthdate: c.birthdate,
+            isDemo: true,
+        }));
+
+        return [...realClients, ...demoClients];
     },
 
     /**
