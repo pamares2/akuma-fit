@@ -12,7 +12,15 @@ export const isSupabaseConfigured = Boolean(
     !supabaseUrl.includes('VITE_SUPABASE_')
 );
 
-export const supabase = createClient(
-    isSupabaseConfigured ? supabaseUrl : 'https://placeholder-project.supabase.co',
-    isSupabaseConfigured ? supabaseAnonKey : 'placeholder-anon-key'
-);
+const resolvedUrl = isSupabaseConfigured ? supabaseUrl : 'https://placeholder-project.supabase.co';
+const resolvedKey = isSupabaseConfigured ? supabaseAnonKey : 'placeholder-anon-key';
+
+export const supabase = createClient(resolvedUrl, resolvedKey);
+
+export const publicSupabase = createClient(resolvedUrl, resolvedKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+    },
+});

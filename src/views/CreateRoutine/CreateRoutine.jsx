@@ -12,6 +12,12 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 
 const EXERCISE_CATEGORIES = [
     'Todas',
+    'Pecho',
+    'Espalda',
+    'Hombro',
+    'Pierna',
+    'Bíceps',
+    'Tríceps',
     'Fuerza',
     'Cardio',
     'Movilidad',

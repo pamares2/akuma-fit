@@ -1,5 +1,6 @@
-import { supabase } from '../supabaseClient.js';
+import { supabase, publicSupabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
+import { DEFAULT_RECIPE_FOODS } from '../config/defaultRecipes.js';
 
 const FOOD_SELECT = '*, food_has_tag(tag(id, name, category))';
 
@@ -16,10 +17,23 @@ const NUMERIC_FIELDS = ['calories', 'protein', 'carbs', 'fat', 'fiber'];
  * @returns {Object} Alimento con `tags`.
  */
 function mapFood(food) {
-    const tags = (food.food_has_tag || []).map(rel => rel.tag).filter(Boolean);
+    const tags = food.tags || (food.food_has_tag || []).map(rel => rel.tag).filter(Boolean);
     const rest = { ...food };
     delete rest.food_has_tag;
     return { ...rest, tags };
+}
+
+function deduplicateFoods(foods) {
+    const byName = new Map();
+    for (const food of foods) {
+        const key = (food.name || '').trim().toLowerCase();
+        if (!key) continue;
+        const existing = byName.get(key);
+        if (!existing || (existing.id < 0 && food.id > 0)) {
+            byName.set(key, food);
+        }
+    }
+    return Array.from(byName.values());
 }
 
 /**
@@ -93,10 +107,36 @@ export const foodService = {
             query = query.in('food_has_tag.tag', filters.tagIds);
         }
 
-        const { data, error } = await query;
+        let { data, error } = await query;
+
+        if (error || !data || data.length === 0) {
+            let pubQuery = publicSupabase.from('food').select(FOOD_SELECT).order('name');
+            if (filters.text) {
+                pubQuery = pubQuery.or(`name.ilike.%${filters.text}%,brand.ilike.%${filters.text}%`);
+            }
+            const pubRes = await pubQuery;
+            if (!pubRes.error && pubRes.data && pubRes.data.length > 0) {
+                data = pubRes.data;
+                error = null;
+            }
+        }
 
         if (error) throw new Error(error.message);
-        return (data || []).map(mapFood);
+
+        let mapped = deduplicateFoods((data || []).map(mapFood));
+
+        if (mapped.length === 0) {
+            mapped = DEFAULT_RECIPE_FOODS.map(f => ({ ...f, tags: [] }));
+            if (filters.text) {
+                const needle = filters.text.toLowerCase();
+                mapped = mapped.filter(
+                    f => f.name.toLowerCase().includes(needle)
+                        || (f.brand && f.brand.toLowerCase().includes(needle))
+                );
+            }
+        }
+
+        return mapped;
     },
 
     /**
@@ -106,6 +146,11 @@ export const foodService = {
      * @returns {Promise<Object>} Alimento.
      */
     async getById(foodId) {
+        if (Number(foodId) < 0) {
+            const fallback = DEFAULT_RECIPE_FOODS.find(f => f.id === Number(foodId));
+            if (fallback) return { ...fallback, tags: [] };
+        }
+
         const { data, error } = await supabase
             .from('food')
             .select(FOOD_SELECT)

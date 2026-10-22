@@ -35,6 +35,7 @@ En el **SQL Editor** de tu panel de Supabase, ejecuta por orden los scripts que 
 6. `006_constraints_indexes.sql` - Claves foráneas con CASCADE, índices y restricciones.
 7. `007_seed.sql` - **(Recomendado)** Datos semilla con biblioteca base de ejercicios, alimentos con macros por 100g y etiquetas.
 8. `008_security_coaches.sql` - **(Recomendado)** Seguridad reforzada en fotos corporales y tabla `coach_has_client`.
+9. `catalogo_completo.sql` - **(Opcional)** Catálogo ampliado de ejercicios y alimentos y ajuste de políticas RLS de lectura.
 
 ### 4. Crear tu cuenta de Entrenador (Coach)
 Al registrarte en la aplicación recibirás por defecto el rol de atleta (`client`). Para ascender tu cuenta a Entrenador, ve al **SQL Editor** de Supabase y ejecuta:
