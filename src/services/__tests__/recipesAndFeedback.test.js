@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_RECIPES, DEFAULT_RECIPE_FOODS, DEFAULT_DIET_TAGS } from '../../config/defaultRecipes.js';
 import { recipeTotalMacros, recipeServingMacros, formatMacros } from '../../utils/dietMacros.js';
+import {
+    feedbackService,
+    FEEDBACK_TOPICS,
+    DEMO_CHAT_CLIENTS,
+    getCoachQuickTemplates,
+} from '../feedbackService.js';
 
 describe('Catálogo de Recetas Fitness (defaultRecipes)', () => {
     it('incluye al menos 12 recetas completas con ingredientes y pasos de preparación', () => {
@@ -29,5 +35,31 @@ describe('Catálogo de Recetas Fitness (defaultRecipes)', () => {
             expect(formatted).toContain('kcal');
             expect(formatted).toContain('P ');
         }
+    });
+});
+
+describe('Chat y Feedback 1 a 1 Personalizado (feedbackService)', () => {
+    it('expone temas y plantillas personalizadas con el nombre del cliente', () => {
+        expect(FEEDBACK_TOPICS.length).toBeGreaterThanOrEqual(4);
+        const templates = getCoachQuickTemplates('Carlos');
+        expect(templates.length).toBeGreaterThanOrEqual(4);
+        expect(templates.some(t => t.text.includes('Carlos'))).toBe(true);
+    });
+
+    it('permite leer y enviar mensajes 1 a 1 en clientes demo interactivos', async () => {
+        const demoClient = DEMO_CHAT_CLIENTS[0];
+        const initial = await feedbackService.getFeedbackForClient(demoClient.id);
+        expect(initial.messages.length).toBeGreaterThanOrEqual(1);
+
+        const sent = await feedbackService.sendMessage(
+            demoClient.id,
+            'Ajustamos +15g de carbohidratos en el post-entreno.',
+            { topic: 'dieta', overrideRole: 'coach' }
+        );
+        expect(sent.text).toContain('Ajustamos +15g');
+        expect(sent.topic).toBe('dieta');
+
+        const updated = await feedbackService.getFeedbackForClient(demoClient.id);
+        expect(updated.messages.length).toBe(initial.messages.length + 1);
     });
 });

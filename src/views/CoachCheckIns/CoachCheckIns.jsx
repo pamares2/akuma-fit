@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import LineChart from '../../components/complex/LineChart/LineChart.jsx';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import ClientSelector from '../../components/complex/ClientSelector/ClientSelector.jsx';
@@ -89,8 +90,12 @@ function CoachCheckIns() {
         return (
             <div className="coach-checkins">
                 <h1 className="coach-checkins-title">Check-Ins y Feedback de Clientes</h1>
-                <div className="coach-checkins-empty">
-                    <p>No tienes clientes asignados.</p>
+                <div className="coach-checkins-empty" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                    <p style={{ margin: 0 }}>Aún no tienes clientes registrados con check-ins, pero puedes abrir y probar el Chat 1 a 1 de Feedback.</p>
+                    <Link to="/app/feedback" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FiMessageSquare />
+                        <span>Abrir Chat y Feedback 1 a 1</span>
+                    </Link>
                 </div>
             </div>
         );
@@ -98,7 +103,17 @@ function CoachCheckIns() {
 
     return (
         <div className="coach-checkins">
-            <h1 className="coach-checkins-title">Check-Ins y Feedback de Clientes</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                <h1 className="coach-checkins-title" style={{ margin: 0 }}>Check-Ins y Feedback de Clientes</h1>
+                <Link
+                    to={`/app/feedback${selectedClientId ? `?clientId=${selectedClientId}` : ''}`}
+                    className="btn-primary"
+                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                >
+                    <FiMessageSquare />
+                    <span>Abrir vista completa de Chat 1 a 1</span>
+                </Link>
+            </div>
 
             <ClientSelector
                 clients={clients}
@@ -114,6 +129,7 @@ function CoachCheckIns() {
                         clientProfileId={selectedClientId}
                         clientName={clientFullName}
                         viewerRole="coach"
+                        allowRoleSwitch={true}
                     />
                 </section>
             )}
@@ -198,16 +214,18 @@ function CoachCheckIns() {
                                                     title={checkIn.coach_feedback ? 'Check-in respondido' : 'Pendiente de feedback'}
                                                 >
                                                     <FiMessageSquare size={11} />
-                                                    {checkIn.coach_feedback ? 'Respondido' : 'Sin responder'}
+                                                    <span>{checkIn.coach_feedback ? 'Respondido' : 'Pendiente'}</span>
                                                 </span>
                                             </div>
                                         </div>
-                                        {expandedCards[index] ? <FiChevronUp /> : <FiChevronDown />}
+                                        <span className="history-toggle">
+                                            {expandedCards[index] ? <FiChevronUp /> : <FiChevronDown />}
+                                        </span>
                                     </div>
                                     {expandedCards[index] && (
                                         <CheckInDetailBlock
                                             checkIn={checkIn}
-                                            compact
+                                            className="history-card-body"
                                             onSaveFeedback={handleSaveFeedback}
                                         />
                                     )}

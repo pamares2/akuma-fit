@@ -108,7 +108,7 @@ function ClientDashboard() {
                     <div style={{ flex: 1, minWidth: '240px' }}>
                         <h3 className="event-list-title" style={{ margin: '0 0 0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <FiMessageSquare style={{ color: 'var(--color-primary, #e63946)' }} />
-                            <span>Feedback de tu Entrenador</span>
+                            <span>Chat 1 a 1 con tu Entrenador</span>
                             {latestFeedback && (
                                 <span style={{ fontSize: '0.78rem', fontWeight: 400, color: '#9aa0a6' }}>
                                     · {formatDate(latestFeedback.updatedAt || latestFeedback.createdAt)}
@@ -118,16 +118,16 @@ function ClientDashboard() {
                         <p style={{ margin: 0, color: latestFeedback ? '#f1f5f9' : '#9aa0a6', lineHeight: 1.5, fontSize: '0.92rem' }}>
                             {latestFeedback
                                 ? latestFeedback.text
-                                : 'Aún no tienes mensajes recientes de tu entrenador. Puedes escribirle desde el apartado de Check-Ins.'}
+                                : 'Habla directamente 1 a 1 con tu entrenador para resolver dudas de dieta, entrenamiento o check-ins.'}
                         </p>
                     </div>
                     <Link
-                        to="/app/checkin"
+                        to="/app/feedback"
                         className="btn-secondary"
                         style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
                     >
                         <FiMessageSquare />
-                        <span>{latestFeedback ? 'Ver y responder' : 'Abrir canal de feedback'}</span>
+                        <span>{latestFeedback ? 'Responder en el Chat 1:1' : 'Abrir Chat 1:1'}</span>
                     </Link>
                 </div>
             </section>
@@ -174,6 +174,9 @@ function ClientDashboard() {
             <section className="events-section">
                 <h3 className="event-list-title">Accesos rápidos</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                    <Link to="/app/feedback" className="btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FiMessageSquare /> Chat Entrenador
+                    </Link>
                     <Link to="/app/checkin/new" className="btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FiPlus /> Nuevo check-in
                     </Link>

@@ -2,6 +2,7 @@
   "coach": [
     { "id": "dashboard", "label": "Dashboard", "icon": "dashboard" },
     { "id": "clients", "label": "Clientes", "icon": "clients" },
+    { "id": "feedback", "label": "Chat / Feedback 1:1", "icon": "feedback" },
     { "id": "client-checkins", "label": "Check-Ins Clientes", "icon": "checkin" },
     { "id": "calendario", "label": "Calendario", "icon": "calendar" },
     { "id": "plans", "label": "Rutinas", "icon": "plans" },
@@ -13,6 +14,7 @@
   ],
   "client": [
     { "id": "dashboard", "label": "Mi Dashboard", "icon": "dashboard" },
+    { "id": "feedback", "label": "Chat Entrenador", "icon": "feedback" },
     { "id": "calendario", "label": "Calendario", "icon": "calendar" },
     { "id": "checkin", "label": "Check-In", "icon": "checkin" },
     { "id": "my-plan", "label": "Mi Plan", "icon": "plans" },

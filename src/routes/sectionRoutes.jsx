@@ -16,6 +16,7 @@ const Progress = lazy(() => import('../views/Progress/Progress.jsx'));
 const NewWeightLog = lazy(() => import('../views/Progress/NewWeightLog.jsx'));
 const ProgressBodyPhotos = lazy(() => import('../views/Progress/ProgressBodyPhotos.jsx'));
 const CoachCheckIns = lazy(() => import('../views/CoachCheckIns/CoachCheckIns.jsx'));
+const FeedbackChat = lazy(() => import('../views/FeedbackChat/FeedbackChat.jsx'));
 const Reports = lazy(() => import('../views/Reports/Reports.jsx'));
 const Clients = lazy(() => import('../views/Clients/Clients.jsx'));
 const CreateRoutine = lazy(() => import('../views/CreateRoutine/CreateRoutine.jsx'));
@@ -49,15 +50,13 @@ function withSuspense(element) {
  * Fuente única de verdad del contenido de cada sección del menú.
  * `menuConfig.json` define label/icon/orden por rol; aquí se define qué se
  * renderiza para cada id de sección (rutas relativas a `/app`).
- *
- * Cada entrada es una lista de rutas: la primera es la "principal" (a la que
- * apunta el enlace del sidebar); el resto son sub-vistas propias de esa
- * sección. Las vistas se cargan con `React.lazy` para dividir el bundle por
- * sección.
  */
 export const SECTION_ROUTES = {
     dashboard: [
         { path: 'dashboard', element: withSuspense(<DashboardRouter />) },
+    ],
+    feedback: [
+        { path: 'feedback', element: withSuspense(<FeedbackChat />) },
     ],
     checkin: [
         { path: 'checkin', element: withSuspense(<CheckIn />) },
