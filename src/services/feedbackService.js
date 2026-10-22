@@ -9,6 +9,75 @@ const FEEDBACK_DTSTART = '2000-01-01';
 const DEMO_STORAGE_KEY = 'akuma_demo_feedback_chats_v2';
 
 /**
+ * Obtiene el ID numérico real del perfil del usuario autenticado en Supabase,
+ * resolviendo el id de la tabla `profile` incluso si en la sesión activa
+ * el usuario está simulando la vista de un cliente de prueba ('demo-client-1' o 'demo-client-2').
+ *
+ * @returns {Promise<number|null>} ID numérico real o null si no autenticado.
+ */
+async function getRealNumericProfileId() {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        if (!userId) return null;
+
+        const { data: prof } = await supabase
+            .from('profile')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        return prof?.id ? Number(prof.id) : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Envía un mensaje broadcast por WebSocket asegurando que si el canal ya está
+ * en estado `joined`, el mensaje se emite inmediatamente sin bloquearse.
+ */
+function sendBroadcastMessage(channelName, targetId, payload) {
+    if (isTestEnv || !supabase || typeof supabase.channel !== 'function') return;
+
+    try {
+        const channel = supabase.channel(channelName, {
+            config: {
+                broadcast: { ack: true, self: true },
+            },
+        });
+
+        const doSend = () => {
+            try {
+                channel.send({
+                    type: 'broadcast',
+                    event: 'new_chat_message',
+                    payload: {
+                        clientProfileId: targetId,
+                        payload,
+                        timestamp: Date.now(),
+                    },
+                });
+            } catch {
+                // no-op
+            }
+        };
+
+        if (channel.state === 'joined') {
+            doSend();
+        } else {
+            channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    doSend();
+                }
+            });
+        }
+    } catch {
+        // no-op
+    }
+}
+
+/**
  * Emite un evento en directo para que se refleje instantáneamente
  * en la web, la app móvil instalada y otras pestañas activas.
  *
@@ -40,23 +109,9 @@ export function broadcastLiveFeedback(clientProfileId, payload) {
         // no-op
     }
 
-    // 3. Supabase Realtime WebSocket Broadcast (comunicación instantánea móvil <-> web sin retraso)
-    if (!isTestEnv && supabase && typeof supabase.channel === 'function') {
-        try {
-            const channel = supabase.channel(`akuma-chat-live-${targetId}`);
-            channel.subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    channel.send({
-                        type: 'broadcast',
-                        event: 'new_chat_message',
-                        payload: { clientProfileId: targetId, payload, timestamp: Date.now() },
-                    });
-                }
-            });
-        } catch {
-            // no-op
-        }
-    }
+    // 3. Supabase Realtime WebSocket (canal individual del cliente y hub global)
+    sendBroadcastMessage(`akuma-chat-live-${targetId}`, targetId, payload);
+    sendBroadcastMessage('akuma-chat-live-hub', targetId, payload);
 }
 
 /**
@@ -788,13 +843,13 @@ export const feedbackService = {
             // Persistencia en Supabase para sincronización remota entre dispositivos
             if (!isTestEnv) {
                 try {
-                    const profile = await getCurrentProfile().catch(() => null);
-                    if (profile?.id) {
+                    const realId = await getRealNumericProfileId();
+                    if (realId) {
                         await supabase
                             .from('calendar_event')
                             .insert({
-                                profile_id: profile.id,
-                                created_by: profile.id,
+                                profile_id: realId,
+                                created_by: realId,
                                 event_type: 'info',
                                 title: '__AKUMA_FEEDBACK_DEMO__',
                                 description: JSON.stringify({ ...demoMsg, demoTargetClientId: clientProfileId }),
@@ -1014,22 +1069,43 @@ export const feedbackService = {
             // no-op
         }
 
-        // 3. Supabase Realtime WebSocket Broadcast Channel (entre dispositivos Web y Móvil)
-        let supabaseChannel = null;
+        // 3. Supabase Realtime WebSocket Broadcast Channels (canal individual y hub global)
+        let supabaseSpecificChannel = null;
+        let supabaseHubChannel = null;
+
         if (!isTestEnv && supabase && typeof supabase.channel === 'function') {
             try {
-                const channelName = `akuma-chat-live-${targetId}`;
-                supabaseChannel = supabase.channel(channelName);
-
-                supabaseChannel.on('broadcast', { event: 'new_chat_message' }, ({ payload }) => {
-                    if (targetId === 'all' || String(payload?.clientProfileId) === targetId) {
-                        onNewEvent(payload?.payload);
+                const onMessageReceived = ({ payload: rawPayload }) => {
+                    if (!rawPayload) return;
+                    const msgTargetId = String(rawPayload.clientProfileId || '');
+                    if (targetId === 'all' || msgTargetId === targetId) {
+                        // Si es cliente demo, persistir de inmediato en el almacén local del dispositivo receptor
+                        if (isDemoClientId(msgTargetId) && rawPayload.payload) {
+                            try {
+                                const store = loadDemoStore();
+                                const list = store[msgTargetId] || [];
+                                const incoming = rawPayload.payload;
+                                if (!list.some(m => (m.rowId && m.rowId === incoming.rowId) || (m.createdAt === incoming.createdAt && m.text === incoming.text))) {
+                                    store[msgTargetId] = [...list, incoming];
+                                    saveDemoStore(store);
+                                }
+                            } catch {
+                                // no-op
+                            }
+                        }
+                        onNewEvent(rawPayload.payload);
                     }
+                };
+
+                // Canal específico para el cliente
+                supabaseSpecificChannel = supabase.channel(`akuma-chat-live-${targetId}`, {
+                    config: { broadcast: { ack: true } },
                 });
+                supabaseSpecificChannel.on('broadcast', { event: 'new_chat_message' }, onMessageReceived);
 
                 // Escuchar también cambios de Postgres en calendar_event
                 if (targetId !== 'all' && !isDemoClientId(targetId)) {
-                    supabaseChannel.on(
+                    supabaseSpecificChannel.on(
                         'postgres_changes',
                         {
                             event: '*',
@@ -1040,7 +1116,7 @@ export const feedbackService = {
                         () => onNewEvent()
                     );
                 } else {
-                    supabaseChannel.on(
+                    supabaseSpecificChannel.on(
                         'postgres_changes',
                         {
                             event: '*',
@@ -1050,8 +1126,14 @@ export const feedbackService = {
                         () => onNewEvent()
                     );
                 }
+                supabaseSpecificChannel.subscribe();
 
-                supabaseChannel.subscribe();
+                // Canal central/hub para garantizar recepción de mensajes cruzados
+                supabaseHubChannel = supabase.channel('akuma-chat-live-hub', {
+                    config: { broadcast: { ack: true } },
+                });
+                supabaseHubChannel.on('broadcast', { event: 'new_chat_message' }, onMessageReceived);
+                supabaseHubChannel.subscribe();
             } catch {
                 // no-op
             }
@@ -1087,8 +1169,11 @@ export const feedbackService = {
             if (bc) {
                 try { bc.close(); } catch {}
             }
-            if (supabaseChannel && typeof supabase?.removeChannel === 'function') {
-                try { supabase.removeChannel(supabaseChannel); } catch {}
+            if (supabaseSpecificChannel && typeof supabase?.removeChannel === 'function') {
+                try { supabase.removeChannel(supabaseSpecificChannel); } catch {}
+            }
+            if (supabaseHubChannel && typeof supabase?.removeChannel === 'function') {
+                try { supabase.removeChannel(supabaseHubChannel); } catch {}
             }
         };
     },

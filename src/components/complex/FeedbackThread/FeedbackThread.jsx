@@ -125,7 +125,17 @@ function FeedbackThread({
     // Suscripción en tiempo real: WebSockets, BroadcastChannel y reconexión móvil
     useEffect(() => {
         if (!clientProfileId) return undefined;
-        const unsubscribe = feedbackService.subscribeToClientFeedback(clientProfileId, () => {
+        const unsubscribe = feedbackService.subscribeToClientFeedback(clientProfileId, (incomingMsg) => {
+            if (incomingMsg && incomingMsg.text) {
+                setMessages((prev) => {
+                    const alreadyExists = prev.some(m =>
+                        (m.rowId && incomingMsg.rowId && m.rowId === incomingMsg.rowId)
+                        || (m.createdAt === incomingMsg.createdAt && m.text === incomingMsg.text)
+                    );
+                    if (alreadyExists) return prev;
+                    return [...prev, incomingMsg];
+                });
+            }
             reloadSilently();
         });
         return () => unsubscribe();
