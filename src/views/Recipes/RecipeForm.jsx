@@ -55,7 +55,10 @@ function RecipeForm() {
     });
 
     const handleAddFood = (food) => {
-        if (ingredients.some(ingredient => ingredient.food.id === food.id)) {
+        if (ingredients.some(ingredient =>
+            (ingredient.food.id && ingredient.food.id === food.id)
+            || ingredient.food.name?.toLowerCase() === food.name?.toLowerCase()
+        )) {
             setShowFoodPicker(false);
             return;
         }
@@ -93,9 +96,10 @@ function RecipeForm() {
             preparation_time: preparationTime === '' ? null : Number(preparationTime),
             servings: Number(servings) || 1,
             ingredients: ingredients.map(ingredient => ({
-                food_id: ingredient.food.id,
+                food_id: typeof ingredient.food.id === 'number' ? ingredient.food.id : null,
+                food: ingredient.food,
                 quantity_g: Number(ingredient.quantity_g) || 0,
-                notes: ingredient.notes.trim() || null,
+                notes: (ingredient.notes || '').trim() || null,
             })),
             tagIds: selectedTags.map(tag => tag.id),
         };
@@ -203,7 +207,7 @@ function RecipeForm() {
                                 <span />
                             </div>
                             {ingredients.map((ingredient, index) => (
-                                <div key={ingredient.food.id} className="sets-table-row recipe-ingredients-row">
+                                <div key={ingredient.food.id || ingredient.food.name || index} className="sets-table-row recipe-ingredients-row">
                                     <span className="recipe-ingredient-name">{ingredient.food.name}</span>
                                     <input
                                         type="number"

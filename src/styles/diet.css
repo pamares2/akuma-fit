@@ -729,4 +729,476 @@
     .recipe-ingredient-kcal {
         display: none;
     }
+
+    .recipe-detail-macros-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .recipe-detail-ingredient-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
+    }
+}
+
+.recipe-card.clickable {
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.recipe-card.clickable:hover {
+    border-color: var(--color-primary-border);
+    transform: translateY(-2px);
+}
+
+.recipe-card-ingredients-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.recipe-ingredient-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    font-size: var(--font-xs);
+    color: var(--color-text-secondary);
+}
+
+.diet-item-name-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.diet-item-recipe-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.diet-item-recipe-ingredients {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+.recipe-detail-modal {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.recipe-detail-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.recipe-detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    overflow-y: auto;
+}
+
+.recipe-detail-description {
+    font-size: var(--font-md);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.recipe-detail-stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.recipe-detail-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+}
+
+.recipe-detail-stat-macros {
+    color: var(--color-primary);
+    border-color: var(--color-primary-border);
+    background-color: var(--color-primary-soft);
+}
+
+.recipe-detail-macros-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+}
+
+.recipe-macro-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.recipe-macro-value {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.recipe-macro-label {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
+}
+
+.recipe-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.recipe-detail-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-lg);
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.recipe-detail-ingredients-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.recipe-detail-ingredient-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.recipe-detail-ingredient-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.recipe-detail-ingredient-name {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.recipe-detail-ingredient-notes {
+    font-size: var(--font-sm);
+    color: var(--color-text-muted);
+}
+
+.recipe-detail-ingredient-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.recipe-detail-ingredient-qty {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: var(--font-sm);
+}
+
+.recipe-detail-ingredient-macros {
+    font-size: var(--font-xs);
+    color: var(--color-text-secondary);
+}
+
+.recipe-detail-steps {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.recipe-detail-step-item {
+    padding-left: var(--space-xs);
+}
+
+/* ==========================================================================
+   ANEF Diet Wizard (5 Pasos Personalizados)
+   ========================================================================== */
+
+.anef-wizard-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.anef-header-card {
+    border: 1px solid var(--color-primary-border);
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
+}
+
+.anef-step-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.anef-step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background-color: var(--color-primary);
+    color: #fff;
+    font-size: var(--font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.anef-loaded-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: var(--font-xs);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.anef-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+}
+
+.anef-metabolic-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.anef-metric-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.anef-metric-highlight {
+    border-color: var(--color-primary-border);
+    background-color: var(--color-primary-soft);
+}
+
+.anef-metric-label {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.anef-metric-value {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.anef-metric-highlight .anef-metric-value {
+    color: var(--color-primary);
+    font-size: var(--font-xl);
+}
+
+.anef-meals-table {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.anef-meals-header,
+.anef-meals-row {
+    display: grid;
+    grid-template-columns: 110px 1.4fr 160px 130px 110px;
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.anef-meals-header {
+    font-size: var(--font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    padding: 0 var(--space-sm);
+}
+
+.anef-meals-row {
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.anef-meal-num {
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: var(--font-sm);
+}
+
+.anef-post-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.anef-meal-kcal {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: var(--font-sm);
+    text-align: right;
+}
+
+.anef-distribution-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+}
+
+.anef-distribution-status.ok {
+    background-color: var(--color-primary-soft);
+    border: 1px solid var(--color-primary-border);
+    color: var(--color-primary);
+}
+
+.anef-distribution-status.warn {
+    background-color: var(--color-error-bg);
+    border: 1px solid var(--color-error-border);
+    color: var(--color-text);
+}
+
+.anef-macro-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.anef-macro-card.auto-active {
+    border-color: var(--color-primary-border);
+    background-color: var(--color-primary-soft);
+}
+
+.anef-macro-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+}
+
+.anef-macro-card-top label {
+    font-weight: 600;
+    font-size: var(--font-sm);
+}
+
+.anef-macro-card-stats {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: var(--font-xs);
+    color: var(--color-text-secondary);
+}
+
+.anef-macro-card-stats strong {
+    font-size: var(--font-md);
+    color: var(--color-primary);
+}
+
+.anef-step4-table-wrapper {
+    overflow-x: auto;
+}
+
+.anef-guidelines-box {
+    margin-top: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+}
+
+.anef-guidelines-box ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+@media (max-width: 768px) {
+    .anef-grid-4 {
+        grid-template-columns: 1fr;
+    }
+
+    .anef-meals-header {
+        display: none;
+    }
+
+    .anef-meals-row {
+        grid-template-columns: 1fr;
+    }
+
+    .anef-meal-kcal {
+        text-align: left;
+    }
 }

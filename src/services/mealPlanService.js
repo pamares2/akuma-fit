@@ -1,5 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { getCurrentProfile } from '../utils/auth.js';
+import { DEFAULT_RECIPES } from '../data/defaultRecipes.js';
+import { recipeService } from './recipeService.js';
 
 /**
  * Selección completa de un plan: días -> comidas -> ítems (con alimento o
@@ -14,11 +16,49 @@ const PLAN_FULL_SELECT = `
             meal_plan_item(
                 *,
                 food(*),
-                recipe(*, recipe_food(food(*)))
+                recipe(*, recipe_food(id, quantity_g, notes, food(*)))
             )
         )
     )
 `;
+
+/**
+ * Normaliza una receta embebida dentro de un ítem de plan, asegurando que
+ * siempre disponga de `ingredients`, `instructions` y `description`.
+ *
+ * @param {Object|null} recipe - Receta embebida.
+ * @returns {Object|null} Receta enriquecida.
+ */
+function normalizeEmbeddedRecipe(recipe) {
+    if (!recipe) return null;
+
+    const cleanName = recipe.name?.toLowerCase().trim();
+    const defaultMatch = cleanName
+        ? DEFAULT_RECIPES.find(r => r.name.toLowerCase().trim() === cleanName)
+        : null;
+
+    const dbIngredients = (recipe.recipe_food || [])
+        .filter(rel => rel.food)
+        .map(rel => ({
+            id: rel.id,
+            food: rel.food,
+            quantity_g: rel.quantity_g,
+            notes: rel.notes,
+        }));
+
+    const ingredients = dbIngredients.length > 0
+        ? dbIngredients
+        : (defaultMatch?.ingredients || []);
+
+    return {
+        ...recipe,
+        category: recipe.category || defaultMatch?.category || 'Comida',
+        description: recipe.description || defaultMatch?.description || '',
+        instructions: recipe.instructions || defaultMatch?.instructions || '',
+        preparation_time: recipe.preparation_time ?? defaultMatch?.preparation_time ?? 15,
+        ingredients,
+    };
+}
 
 /**
  * Valor temporal de orden para intercambiar dos filas sin violar la
@@ -36,7 +76,10 @@ const TEMP_ORDER = -1;
 function mapPlan(plan) {
     const days = (plan.meal_plan_day || []).map(day => {
         const slots = (day.meal_plan_slot || []).map(slot => {
-            const items = slot.meal_plan_item || [];
+            const items = (slot.meal_plan_item || []).map(item => ({
+                ...item,
+                recipe: normalizeEmbeddedRecipe(item.recipe),
+            }));
             const slotRest = { ...slot };
             delete slotRest.meal_plan_item;
             return { ...slotRest, items };
@@ -176,12 +219,49 @@ export const mealPlanService = {
     async getClients() {
         const { data, error } = await supabase
             .from('profile')
-            .select('id, name, surname')
+            .select('id, name, surname, gender, birthdate')
             .eq('role', 'client')
             .order('name');
 
         if (error) throw new Error(error.message);
         return data || [];
+    },
+
+    /**
+     * Obtiene el perfil nutricional completo de un cliente (datos de perfil,
+     * valoración inicial y historial de mediciones de peso) para pre-rellenar
+     * el calculador de dieta personalizada ANEF.
+     *
+     * @param {number} clientId - Id del perfil del cliente.
+     * @returns {Promise<{client: Object, assessment: Object|null, measurements: Array}>}
+     */
+    async getClientNutritionalProfile(clientId) {
+        const [profileRes, assessmentRes, measurementsRes] = await Promise.all([
+            supabase
+                .from('profile')
+                .select('id, name, surname, gender, birthdate')
+                .eq('id', clientId)
+                .maybeSingle(),
+            supabase
+                .from('initial_assessment')
+                .select('*')
+                .eq('profile_id', clientId)
+                .maybeSingle(),
+            supabase
+                .from('measurement')
+                .select('*')
+                .eq('profile_id', clientId)
+                .order('created_at', { ascending: false })
+                .limit(5),
+        ]);
+
+        if (profileRes.error) throw new Error(profileRes.error.message);
+
+        return {
+            client: profileRes.data || null,
+            assessment: assessmentRes.data || null,
+            measurements: measurementsRes.data || [],
+        };
     },
 
     /**
@@ -191,12 +271,11 @@ export const mealPlanService = {
      * @returns {Promise<Array>} Lista de planes.
      */
     async getAll() {
-        const profile = await getCurrentProfile();
+        await getCurrentProfile();
 
         const { data, error } = await supabase
             .from('meal_plan')
             .select('*, meal_plan_day(id), profile_has_meal_plan(profile(id, name, surname))')
-            .eq('created_by', profile.id)
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(error.message);
@@ -606,12 +685,25 @@ export const mealPlanService = {
     async addItem(slotId, itemData) {
         const maxOrder = await getMaxOrder('meal_plan_item', 'slot_id', slotId, 'item_order');
 
+        let resolvedRecipeId = itemData.recipe_id ?? null;
+
+        if (itemData.recipe) {
+            const persisted = await recipeService.ensurePersisted(itemData.recipe);
+            resolvedRecipeId = persisted.id;
+        } else if (typeof resolvedRecipeId === 'string' && resolvedRecipeId.startsWith('default-')) {
+            const defRecipe = DEFAULT_RECIPES.find(r => r.id === resolvedRecipeId);
+            if (defRecipe) {
+                const persisted = await recipeService.ensurePersisted(defRecipe);
+                resolvedRecipeId = persisted.id;
+            }
+        }
+
         const { data, error } = await supabase
             .from('meal_plan_item')
             .insert({
                 slot_id: slotId,
                 item_order: maxOrder + 1,
-                recipe_id: itemData.recipe_id ?? null,
+                recipe_id: resolvedRecipeId,
                 food_id: itemData.food_id ?? null,
                 quantity_g: itemData.quantity_g ?? null,
                 servings: itemData.servings ?? null,

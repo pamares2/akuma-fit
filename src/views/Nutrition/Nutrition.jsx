@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiChevronDown } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiChevronDown, FiBookOpen } from 'react-icons/fi';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { mealPlanService } from '../../services/mealPlanService.js';
 import { useAuth } from '../../context/useAuth.js';
+import RecipeDetailModal from '../../components/complex/RecipeDetailModal/RecipeDetailModal.jsx';
 import {
     itemMacros,
     slotMacros,
@@ -74,6 +75,7 @@ function Nutrition() {
     const { profileId } = useAuth();
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [expandedDayId, setExpandedDayId] = useState(null);
+    const [viewingRecipe, setViewingRecipe] = useState(null);
 
     const { data: plans, loading, error } = useAsyncData(
         profileId ? () => mealPlanService.getByClient(profileId) : null,
@@ -171,10 +173,29 @@ function Nutrition() {
                                                                         {itemQuantityLabel(item)}
                                                                         {item.notes ? ` · ${item.notes}` : ''}
                                                                     </span>
+                                                                    {item.recipe?.ingredients?.length > 0 && (
+                                                                        <span className="diet-item-recipe-ingredients">
+                                                                            {item.recipe.ingredients
+                                                                                .map(ing => `${ing.food?.name} (${Math.round((ing.quantity_g || 0) * (item.servings || 1))}g)`)
+                                                                                .join(' · ')}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
-                                                                <span className="nutrition-item-macros">
-                                                                    {formatMacros(itemMacros(item))}
-                                                                </span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                    {item.recipe && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn-outline btn-sm"
+                                                                            onClick={() => setViewingRecipe(item.recipe)}
+                                                                        >
+                                                                            <FiBookOpen size={14} />
+                                                                            <span>Ver receta</span>
+                                                                        </button>
+                                                                    )}
+                                                                    <span className="nutrition-item-macros">
+                                                                        {formatMacros(itemMacros(item))}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -187,6 +208,13 @@ function Nutrition() {
                         })}
                     </div>
                 </div>
+
+                {viewingRecipe && (
+                    <RecipeDetailModal
+                        recipe={viewingRecipe}
+                        onClose={() => setViewingRecipe(null)}
+                    />
+                )}
             </div>
         );
     }

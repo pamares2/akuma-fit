@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     FiPlus,
     FiTrash2,
@@ -8,6 +8,7 @@ import {
     FiCopy,
     FiAlertTriangle,
     FiZap,
+    FiBookOpen,
 } from 'react-icons/fi';
 import { mealPlanService } from '../../services/mealPlanService.js';
 import { assessmentService } from '../../services/assessmentService.js';
@@ -15,6 +16,8 @@ import { dietGeneratorService } from '../../services/dietGeneratorService.js';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import useFormSubmission from '../../hooks/useFormSubmission.js';
 import DietItemPicker from '../../components/complex/DietItemPicker/DietItemPicker.jsx';
+import RecipeDetailModal from '../../components/complex/RecipeDetailModal/RecipeDetailModal.jsx';
+import AnefDietWizard from '../../components/complex/AnefDietWizard/AnefDietWizard.jsx';
 import { itemMacros, slotMacros, dayMacros, formatMacros } from '../../utils/dietMacros.js';
 
 /**
@@ -187,6 +190,7 @@ function AutoDietGeneratorCard({ plan, onGenerated }) {
     const [carbs, setCarbs] = useState(plan.target_carbs || 240);
     const [fat, setFat] = useState(plan.target_fat || 65);
     const [mealsCount, setMealsCount] = useState(4);
+    const [mode, setMode] = useState('recipes');
     const [generating, setGenerating] = useState(false);
     const [genError, setGenError] = useState(null);
     const [genSuccess, setGenSuccess] = useState(false);
@@ -203,6 +207,7 @@ function AutoDietGeneratorCard({ plan, onGenerated }) {
                 carbs: Number(carbs),
                 fat: Number(fat),
                 mealsCount: Number(mealsCount),
+                mode,
             });
             setGenSuccess(true);
             onGenerated();
@@ -223,13 +228,13 @@ function AutoDietGeneratorCard({ plan, onGenerated }) {
         }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <h2 className="section-subtitle" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FiZap style={{ color: 'var(--color-primary)' }} /> Generador Automático de Comidas
+                    <FiZap style={{ color: 'var(--color-primary)' }} /> Generador Automático de Dieta y Recetas
                 </h2>
                 <span className="anime-badge">IA / Automático</span>
             </div>
 
             <p className="section-help" style={{ marginBottom: '1.25rem' }}>
-                Calcula automáticamente todas las comidas del día, selecciona los alimentos de la base de datos y calcula los gramos exactos para cuadrar los macros del cliente.
+                Calcula automáticamente todas las comidas del día con recetas completas de dieta (o alimentos por gramos) cuadradas a los macros del cliente.
             </p>
 
             <div className="diet-form-grid diet-form-macros" style={{ marginBottom: '1rem' }}>
@@ -275,24 +280,37 @@ function AutoDietGeneratorCard({ plan, onGenerated }) {
                 </div>
             </div>
 
-            <div className="form-field" style={{ marginBottom: '1.25rem' }}>
-                <label>Número de comidas al día</label>
-                <select
-                    className="category-select"
-                    value={mealsCount}
-                    onChange={(e) => setMealsCount(Number(e.target.value))}
-                    style={{ maxWidth: '340px' }}
-                >
-                    <option value={3}>3 Comidas (Desayuno, Comida, Cena)</option>
-                    <option value={4}>4 Comidas (Desayuno, Comida, Merienda, Cena)</option>
-                    <option value={5}>5 Comidas (Desayuno, Media Mañana, Comida, Merienda, Cena)</option>
-                </select>
+            <div className="diet-form-grid" style={{ marginBottom: '1.25rem' }}>
+                <div className="form-field">
+                    <label>Número de comidas al día</label>
+                    <select
+                        className="category-select"
+                        value={mealsCount}
+                        onChange={(e) => setMealsCount(Number(e.target.value))}
+                    >
+                        <option value={3}>3 Comidas (Desayuno, Comida, Cena)</option>
+                        <option value={4}>4 Comidas (Desayuno, Comida, Merienda, Cena)</option>
+                        <option value={5}>5 Comidas (Desayuno, Media Mañana, Comida, Merienda, Cena)</option>
+                    </select>
+                </div>
+
+                <div className="form-field">
+                    <label>Formato de generación</label>
+                    <select
+                        className="category-select"
+                        value={mode}
+                        onChange={(e) => setMode(e.target.value)}
+                    >
+                        <option value="recipes">Recetas completas de dieta (con ingredientes y elaboración)</option>
+                        <option value="foods">Alimentos individuales desglosados por gramos</option>
+                    </select>
+                </div>
             </div>
 
             {genError && <div className="error-message">{genError}</div>}
             {genSuccess && (
                 <div className="success-message" style={{ marginBottom: '1rem' }}>
-                    ✓ ¡Día con comidas y alimentos generado automáticamente con éxito! Desplázate abajo para ver el desglose en gramos.
+                    ✓ ¡Día generado automáticamente con éxito! Desplázate abajo para ver las comidas y recetas.
                 </div>
             )}
 
@@ -303,7 +321,13 @@ function AutoDietGeneratorCard({ plan, onGenerated }) {
                 style={{ width: '100%', justifyContent: 'center', padding: '0.85rem' }}
             >
                 <FiZap size={18} />
-                <span>{generating ? 'Calculando y generando alimentos...' : '⚡ Generar Día con Alimentos Automáticos'}</span>
+                <span>
+                    {generating
+                        ? 'Calculando y generando comidas...'
+                        : mode === 'recipes'
+                            ? '⚡ Generar Día con Recetas de Dieta'
+                            : '⚡ Generar Día con Alimentos por Gramos'}
+                </span>
             </button>
         </div>
     );
@@ -414,14 +438,30 @@ function PlanAssignment({ plan, onSaved }) {
  * Fila de un ítem dentro de una comida, con cantidad/raciones editables y
  * acciones de mover/eliminar.
  */
-function ItemRow({ item, busy, onUpdate, onMove, onRemove }) {
+function ItemRow({ item, busy, onUpdate, onMove, onRemove, onViewRecipe }) {
     const macros = itemMacros(item);
+    const servingsFactor = item.servings && item.servings > 0 ? item.servings : 1;
+    const recipeIngredients = item.recipe?.ingredients || [];
 
     return (
         <div className="diet-item-row">
-            <span className="diet-item-name">
-                {item.food ? item.food.name : `${item.recipe.name} (receta)`}
-            </span>
+            <div className="diet-item-name-block">
+                <span className="diet-item-name">
+                    {item.food ? item.food.name : item.recipe?.name}
+                </span>
+                {item.recipe && (
+                    <div className="diet-item-recipe-meta">
+                        <span className="tag-badge">Receta</span>
+                        {recipeIngredients.length > 0 && (
+                            <span className="diet-item-recipe-ingredients">
+                                {recipeIngredients
+                                    .map(ing => `${ing.food?.name} (${Math.round((ing.quantity_g || 0) * servingsFactor)}g)`)
+                                    .join(' · ')}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {item.food ? (
                 <div className="diet-item-quantity">
@@ -453,6 +493,17 @@ function ItemRow({ item, busy, onUpdate, onMove, onRemove }) {
             <span className="diet-item-macros">{formatMacros(macros)}</span>
 
             <div className="diet-row-actions">
+                {item.recipe && onViewRecipe && (
+                    <button
+                        type="button"
+                        className="btn-outline btn-sm"
+                        onClick={() => onViewRecipe(item.recipe)}
+                        title="Ver receta e instrucciones"
+                    >
+                        <FiBookOpen size={14} />
+                        <span>Receta</span>
+                    </button>
+                )}
                 <button className="btn-icon" disabled={busy} onClick={() => onMove(item.id, -1)} title="Subir">
                     <FiChevronUp size={16} />
                 </button>
@@ -486,6 +537,8 @@ function MealPlanEditor() {
     const [busy, setBusy] = useState(false);
     const [actionError, setActionError] = useState(null);
     const [pickerSlotId, setPickerSlotId] = useState(null);
+    const [viewingRecipe, setViewingRecipe] = useState(null);
+    const [showAnefWizard, setShowAnefWizard] = useState(false);
 
     const { data: plan, loading, error } = useAsyncData(
         isEditing ? () => mealPlanService.getById(id) : null,
@@ -515,12 +568,16 @@ function MealPlanEditor() {
 
     const handlePickFood = (food) => {
         if (!pickerSlotId) return;
-        runAction(() => mealPlanService.addItem(pickerSlotId, { food_id: food.id, quantity_g: 100 }));
+        const slotId = pickerSlotId;
+        setPickerSlotId(null);
+        runAction(() => mealPlanService.addItem(slotId, { food_id: food.id, quantity_g: 100 }));
     };
 
     const handlePickRecipe = (recipe) => {
         if (!pickerSlotId) return;
-        runAction(() => mealPlanService.addItem(pickerSlotId, { recipe_id: recipe.id, servings: 1 }));
+        const slotId = pickerSlotId;
+        setPickerSlotId(null);
+        runAction(() => mealPlanService.addItem(slotId, { recipe, recipe_id: recipe.id, servings: 1 }));
     };
 
     if (!isEditing) {
@@ -544,12 +601,39 @@ function MealPlanEditor() {
             <div className="page-container">
                 <div className="page-header">
                     <h1 className="page-title">{plan.title}</h1>
-                    <button className="btn-outline" onClick={() => navigate('/app/dietas')}>
-                        Volver a dietas
-                    </button>
+                    <div className="diet-header-actions">
+                        <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={() => setShowAnefWizard(prev => !prev)}
+                        >
+                            <FiZap size={16} />
+                            <span>
+                                {showAnefWizard
+                                    ? 'Ocultar Calculadora ANEF (5 Pasos)'
+                                    : '⚡ Calculadora ANEF por Datos del Cliente'}
+                            </span>
+                        </button>
+                        <button className="btn-outline" onClick={() => navigate('/app/dietas')}>
+                            Volver a dietas
+                        </button>
+                    </div>
                 </div>
 
                 {actionError && <div className="error-message">{actionError}</div>}
+
+                {showAnefWizard && (
+                    <div style={{ marginBottom: '2rem' }}>
+                        <AnefDietWizard
+                            plan={plan}
+                            onCompleted={() => {
+                                setShowAnefWizard(false);
+                                reload();
+                            }}
+                            onCancel={() => setShowAnefWizard(false)}
+                        />
+                    </div>
+                )}
 
                 <PlanHeaderForm key={`header-${plan.id}-${reloadKey}`} plan={plan} onSaved={reload} />
                 <AutoDietGeneratorCard key={`autogen-${plan.id}-${reloadKey}`} plan={plan} onGenerated={reload} />
@@ -655,6 +739,7 @@ function MealPlanEditor() {
                                                 onUpdate={handleUpdateItem}
                                                 onMove={(itemId, direction) => runAction(() => mealPlanService.moveItem(itemId, direction))}
                                                 onRemove={(itemId) => runAction(() => mealPlanService.removeItem(itemId))}
+                                                onViewRecipe={(recipe) => setViewingRecipe(recipe)}
                                             />
                                         ))}
 
@@ -699,182 +784,52 @@ function MealPlanEditor() {
                     onPickRecipe={handlePickRecipe}
                 />
             )}
+
+            {viewingRecipe && (
+                <RecipeDetailModal
+                    recipe={viewingRecipe}
+                    onClose={() => setViewingRecipe(null)}
+                    onEdit={(recipe) => {
+                        setViewingRecipe(null);
+                        navigate(`/app/recetas/${recipe.id}/edit`);
+                    }}
+                />
+            )}
         </div>
     );
 }
 
 /**
- * Formulario de creación de un plan con opción de auto-generación de comidas según macros.
+ * Formulario de creación de un plan con la Calculadora Personalizada ANEF
+ * (5 pasos con datos reales del cliente) o creación rápida por macros.
  */
 function PlanCreate() {
     const navigate = useNavigate();
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [targetCalories, setTargetCalories] = useState(2200);
-    const [targetProtein, setTargetProtein] = useState(160);
-    const [targetCarbs, setTargetCarbs] = useState(240);
-    const [targetFat, setTargetFat] = useState(65);
-    const [mealsCount, setMealsCount] = useState(4);
-    const [autoGenerate, setAutoGenerate] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState(null);
-
-    const handleCreate = async () => {
-        if (!title.trim()) return;
-
-        setSubmitting(true);
-        setSubmitError(null);
-
-        try {
-            const plan = await mealPlanService.create({
-                title: title.trim(),
-                description: description.trim(),
-                target_calories: Number(targetCalories) || null,
-                target_protein: Number(targetProtein) || null,
-                target_carbs: Number(targetCarbs) || null,
-                target_fat: Number(targetFat) || null,
-            });
-
-            if (autoGenerate && targetCalories && targetProtein && targetCarbs && targetFat) {
-                try {
-                    await dietGeneratorService.generateDay(plan.id, {
-                        calories: Number(targetCalories),
-                        protein: Number(targetProtein),
-                        carbs: Number(targetCarbs),
-                        fat: Number(targetFat),
-                        mealsCount: Number(mealsCount),
-                        dayLabel: 'Día 1 (Calculado)',
-                    });
-                } catch (genErr) {
-                    console.warn('Aviso en generación automática:', genErr);
-                }
-            }
-
-            navigate(`/app/dietas/${plan.id}/edit`, { replace: true });
-        } catch (err) {
-            setSubmitError(err.message);
-            setSubmitting(false);
-        }
-    };
+    const [searchParams] = useSearchParams();
+    const initialClientId = searchParams.get('clientId') || '';
 
     return (
         <div className="diet-page">
             <div className="page-container">
-                <h1 className="page-title">Nuevo plan de alimentación</h1>
-                <p className="page-description">
-                    Crea un plan y calcula automáticamente todas las comidas o configúralas manualmente.
-                </p>
-
-                <div className="form-section-card">
-                    <div className="form-field">
-                        <label>Título del plan *</label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(event) => setTitle(event.target.value)}
-                            placeholder="Ej: Plan de volumen / definición"
-                            className="form-field-input"
-                        />
+                <div className="page-header">
+                    <div>
+                        <h1 className="page-title">Nueva Dieta Personalizada (Sistema ANEF)</h1>
+                        <p className="page-description" style={{ marginBottom: 0 }}>
+                            Calcula el metabolismo basal, factor de actividad, reparto de comidas (3 a 8), gramos por kg con Auto-Ajuste y genera el menú con recetas y equivalencias.
+                        </p>
                     </div>
-
-                    <div className="form-field">
-                        <label>Descripción</label>
-                        <textarea
-                            value={description}
-                            onChange={(event) => setDescription(event.target.value)}
-                            rows="2"
-                            placeholder="Objetivos o pautas generales para el cliente..."
-                            className="form-field-textarea"
-                        />
-                    </div>
-
-                    <h3 className="diet-form-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1.25rem' }}>
-                        <FiZap style={{ color: 'var(--color-primary)' }} /> Macros objetivo diarios
-                    </h3>
-                    <div className="diet-form-grid diet-form-macros">
-                        <div className="form-field">
-                            <label>Kcal</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={targetCalories}
-                                onChange={(event) => setTargetCalories(event.target.value)}
-                                className="form-field-input"
-                            />
-                        </div>
-                        <div className="form-field">
-                            <label>Proteínas (g)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={targetProtein}
-                                onChange={(event) => setTargetProtein(event.target.value)}
-                                className="form-field-input"
-                            />
-                        </div>
-                        <div className="form-field">
-                            <label>Carbohidratos (g)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={targetCarbs}
-                                onChange={(event) => setTargetCarbs(event.target.value)}
-                                className="form-field-input"
-                            />
-                        </div>
-                        <div className="form-field">
-                            <label>Grasas (g)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={targetFat}
-                                onChange={(event) => setTargetFat(event.target.value)}
-                                className="form-field-input"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-field" style={{ marginTop: '1rem' }}>
-                        <label>Número de comidas al día</label>
-                        <select
-                            className="category-select"
-                            value={mealsCount}
-                            onChange={(e) => setMealsCount(Number(e.target.value))}
-                            style={{ maxWidth: '340px' }}
-                        >
-                            <option value={3}>3 Comidas (Desayuno, Comida, Cena)</option>
-                            <option value={4}>4 Comidas (Desayuno, Comida, Merienda, Cena)</option>
-                            <option value={5}>5 Comidas (Desayuno, Media Mañana, Comida, Merienda, Cena)</option>
-                        </select>
-                    </div>
-
-                    <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem', padding: '0.75rem', background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-border)', borderRadius: '8px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', margin: 0, fontWeight: 600 }}>
-                            <input
-                                type="checkbox"
-                                checked={autoGenerate}
-                                onChange={(e) => setAutoGenerate(e.target.checked)}
-                                style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                            />
-                            <span>⚡ Generar automáticamente todas las comidas y gramos de alimentos para estos macros</span>
-                        </label>
-                    </div>
-
-                    {submitError && <div className="error-message">{submitError}</div>}
-
-                    <div className="form-buttons">
-                        <button className="btn-secondary" onClick={() => navigate('/app/dietas')} disabled={submitting}>
-                            Cancelar
-                        </button>
-                        <button
-                            className="btn-primary"
-                            disabled={!title.trim() || submitting}
-                            onClick={handleCreate}
-                        >
-                            {submitting ? 'Generando dieta...' : (autoGenerate ? '⚡ Crear y Generar Dieta Automática' : 'Crear plan vacío')}
-                        </button>
-                    </div>
+                    <button className="btn-outline" onClick={() => navigate('/app/dietas')}>
+                        Volver a dietas
+                    </button>
                 </div>
+
+                <AnefDietWizard
+                    initialClientId={initialClientId}
+                    onCompleted={(newPlanId) => {
+                        navigate(`/app/dietas/${newPlanId}/edit`, { replace: true });
+                    }}
+                    onCancel={() => navigate('/app/dietas')}
+                />
             </div>
         </div>
     );

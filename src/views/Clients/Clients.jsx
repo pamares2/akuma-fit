@@ -335,6 +335,29 @@ export default function Clients() {
                                     </Link>
 
                                     <Link
+                                        to={`/app/dietas/new?clientId=${client.id}`}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.45rem',
+                                            fontSize: '0.8rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid var(--color-primary, #e63946)',
+                                            background: 'rgba(230, 57, 70, 0.12)',
+                                            color: '#ffffff',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.25rem',
+                                            textDecoration: 'none',
+                                            fontWeight: 600,
+                                        }}
+                                        title="Crear dieta personalizada ANEF con los datos de este cliente"
+                                    >
+                                        <FiClipboard /> Dieta ANEF
+                                    </Link>
+
+                                    <Link
                                         to="/app/reportes"
                                         style={{
                                             flex: 1,
