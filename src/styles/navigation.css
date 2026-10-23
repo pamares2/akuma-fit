@@ -260,11 +260,14 @@
     }
 
     .header {
-        padding: var(--space-md) var(--space-xl);
+        padding: var(--space-sm) var(--space-md);
+        max-width: 100vw;
+        box-sizing: border-box;
     }
 
     .header-right {
-        gap: var(--space-md);
+        gap: var(--space-sm);
+        flex-wrap: nowrap;
     }
 
     .user-name {
@@ -288,15 +291,31 @@
     }
 
     .header {
-        padding: 0.5rem 0.75rem;
+        padding: 0.45rem 0.6rem;
     }
 
     .header-left {
-        gap: 0.4rem;
+        gap: 0.35rem;
+        flex-shrink: 0;
+    }
+
+    .header-left span {
+        font-size: 0.95rem !important;
     }
 
     .header-right {
-        gap: 0.35rem;
+        gap: 0.25rem;
+        flex-wrap: nowrap;
+    }
+
+    .install-pwa-btn span {
+        display: none;
+    }
+
+    .install-pwa-btn {
+        padding: 0.35rem 0.5rem !important;
+        min-width: 34px !important;
+        justify-content: center;
     }
 
     .logout-button {

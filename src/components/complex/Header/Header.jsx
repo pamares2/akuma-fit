@@ -60,11 +60,11 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                 </div>
             </div>
 
-            <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="header-right">
                 <InstallPwaModal />
 
                 {canSwitchDemoView && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         {impersonatedClientId && (
                             <button
                                 type="button"
@@ -123,7 +123,7 @@ function Header({ onLogout, onMenuToggle, menuOpen }) {
                                     fontWeight: 600,
                                     cursor: 'pointer',
                                     outline: 'none',
-                                    maxWidth: '180px',
+                                    maxWidth: 'clamp(110px, 20vw, 180px)',
                                 }}
                             >
                                 <option value="" style={{ background: '#181b20', color: '#fff' }}>

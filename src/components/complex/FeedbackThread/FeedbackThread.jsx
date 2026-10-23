@@ -442,8 +442,8 @@ function FeedbackThread({
                                         key={msg.rowId || idx}
                                         style={{
                                             alignSelf: isMine ? 'flex-end' : 'flex-start',
-                                            maxWidth: '82%',
-                                            minWidth: '220px',
+                                            maxWidth: '88%',
+                                            minWidth: 'min(100%, 200px)',
                                             padding: '0.75rem 1rem',
                                             borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                                             opacity: msg.isPending ? 0.78 : 1,
@@ -577,7 +577,7 @@ function FeedbackThread({
                     }
                     style={{
                         flex: 1,
-                        minWidth: '220px',
+                        minWidth: 'min(100%, 200px)',
                         padding: '0.75rem 0.95rem',
                         borderRadius: '12px',
                         background: 'var(--color-bg, #111318)',

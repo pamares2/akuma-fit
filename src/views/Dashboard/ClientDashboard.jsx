@@ -105,8 +105,8 @@ function ClientDashboard() {
                     gap: '1rem',
                     flexWrap: 'wrap',
                 }}>
-                    <div style={{ flex: 1, minWidth: '240px' }}>
-                        <h3 className="event-list-title" style={{ margin: '0 0 0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, minWidth: 'min(100%, 240px)' }}>
+                        <h3 className="event-list-title" style={{ margin: '0 0 0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <FiMessageSquare style={{ color: 'var(--color-primary, #e63946)' }} />
                             <span>Chat 1 a 1 con tu Entrenador</span>
                             {latestFeedback && (
@@ -124,7 +124,7 @@ function ClientDashboard() {
                     <Link
                         to="/app/feedback"
                         className="btn-secondary"
-                        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}
+                        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                     >
                         <FiMessageSquare />
                         <span>{latestFeedback ? 'Responder en el Chat 1:1' : 'Abrir Chat 1:1'}</span>
@@ -173,7 +173,7 @@ function ClientDashboard() {
 
             <section className="events-section">
                 <h3 className="event-list-title">Accesos rápidos</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
                     <Link to="/app/feedback" className="btn-primary" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FiMessageSquare /> Chat Entrenador
                     </Link>

@@ -402,7 +402,7 @@ function CreateRoutine() {
                                 Este atleta aún no tiene ninguna rutina asignada. Rellena el formulario de abajo para asignarle una.
                             </p>
                         ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '0.85rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '0.85rem' }}>
                                 {clientRoutines.map((r) => {
                                     const isCurrentlyEditing = editingRoutineId === r.id;
                                     return (

@@ -60,6 +60,7 @@ export default function InstallPwaModal() {
         <>
             <button
                 type="button"
+                className="install-pwa-btn"
                 onClick={handleInstallClick}
                 style={{
                     display: 'inline-flex',

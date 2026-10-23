@@ -4,11 +4,13 @@ import {
     FiMessageSquare,
     FiSearch,
     FiUser,
+    FiUsers,
     FiActivity,
     FiCheckCircle,
     FiZap,
     FiClipboard,
     FiAlertCircle,
+    FiArrowLeft,
 } from 'react-icons/fi';
 import Spinner from '../../components/primitives/Spinner/Spinner.jsx';
 import FeedbackThread from '../../components/complex/FeedbackThread/FeedbackThread.jsx';
@@ -35,6 +37,7 @@ function FeedbackChat() {
     const [filterMode, setFilterMode] = useState('all'); // 'all' | 'pending'
     const [selectedClientId, setSelectedClientId] = useState(initialClientParam || null);
     const [reloadKey, setReloadKey] = useState(0);
+    const [mobileTab, setMobileTab] = useState('chat'); // 'chat' | 'list' | 'info'
 
     const { data: conversations, loading, error } = useAsyncData(
         userRole === 'coach'
@@ -124,7 +127,7 @@ function FeedbackChat() {
     }
 
     return (
-        <div className="dashboard-main" style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.25rem 1.5rem' }}>
+        <div className="dashboard-main" style={{ maxWidth: '1400px', margin: '0 auto', padding: 'clamp(0.75rem, 2.5vw, 1.25rem)' }}>
             {/* Cabecera */}
             <div style={{
                 display: 'flex',
@@ -132,10 +135,10 @@ function FeedbackChat() {
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: '1rem',
-                marginBottom: '1.25rem',
+                marginBottom: '1rem',
             }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <h1 style={{ margin: 0, fontSize: 'clamp(1.25rem, 4vw, 1.7rem)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                         <FiMessageSquare style={{ color: 'var(--color-primary, #e63946)' }} />
                         <span>Feedback y Chat 1 a 1 con Clientes</span>
                         <span style={{
@@ -162,7 +165,7 @@ function FeedbackChat() {
                             En directo (Web & App)
                         </span>
                     </h1>
-                    <p style={{ margin: '0.25rem 0 0', color: 'var(--color-text-secondary, #9aa0a6)', fontSize: '0.9rem' }}>
+                    <p style={{ margin: '0.25rem 0 0', color: 'var(--color-text-secondary, #9aa0a6)', fontSize: '0.88rem' }}>
                         Comunicación directa e individualizada con cada atleta, conectada a su Dieta ANEF, rutina y check-ins.
                     </p>
                 </div>
@@ -170,25 +173,48 @@ function FeedbackChat() {
 
             {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
-            {/* Layout de 3 columnas: Conversaciones | Chat 1 a 1 | Contexto del Cliente */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(270px, 320px) minmax(420px, 1fr) minmax(260px, 310px)',
-                gap: '1.25rem',
-                alignItems: 'start',
-            }}
-            className="feedback-chat-layout"
-            >
+            {/* Pestañas para navegación rápida en pantallas móviles */}
+            <nav className="feedback-chat-mobile-nav" aria-label="Navegación móvil del chat">
+                <button
+                    type="button"
+                    className={mobileTab === 'list' ? 'active' : ''}
+                    onClick={() => setMobileTab('list')}
+                >
+                    <FiUsers size={14} /> Atletas ({filteredConversations.length})
+                </button>
+                <button
+                    type="button"
+                    className={mobileTab === 'chat' ? 'active' : ''}
+                    onClick={() => setMobileTab('chat')}
+                >
+                    <FiMessageSquare size={14} /> Chat {activeClient ? `· ${activeClient.name}` : ''}
+                </button>
+                {activeClient && (
+                    <button
+                        type="button"
+                        className={mobileTab === 'info' ? 'active' : ''}
+                        onClick={() => setMobileTab('info')}
+                    >
+                        <FiUser size={14} /> Ficha
+                    </button>
+                )}
+            </nav>
+
+            {/* Layout adaptable: 3 columnas en Desktop, 2 en Tablet, 1 con pestañas fluidas en Móvil */}
+            <div className="feedback-chat-layout">
                 {/* COLUMNA 1: Lista de Conversaciones 1 a 1 */}
-                <aside style={{
-                    background: 'var(--color-bg-secondary, #181b20)',
-                    border: '1px solid var(--color-border, #282c34)',
-                    borderRadius: '16px',
-                    padding: '1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.85rem',
-                }}>
+                <aside
+                    className={`feedback-chat-col ${mobileTab !== 'list' ? 'hidden-on-mobile' : ''}`}
+                    style={{
+                        background: 'var(--color-bg-secondary, #181b20)',
+                        border: '1px solid var(--color-border, #282c34)',
+                        borderRadius: '16px',
+                        padding: '1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.85rem',
+                    }}
+                >
                     <div style={{ position: 'relative' }}>
                         <FiSearch style={{
                             position: 'absolute',
@@ -259,7 +285,10 @@ function FeedbackChat() {
                                 <button
                                     key={conv.id}
                                     type="button"
-                                    onClick={() => setSelectedClientId(conv.id)}
+                                    onClick={() => {
+                                        setSelectedClientId(conv.id);
+                                        setMobileTab('chat');
+                                    }}
                                     style={{
                                         textAlign: 'left',
                                         padding: '0.8rem',
@@ -363,7 +392,30 @@ function FeedbackChat() {
                 </aside>
 
                 {/* COLUMNA 2: Chat 1 a 1 en Vivo */}
-                <section>
+                <section className={`feedback-chat-col ${mobileTab !== 'chat' ? 'hidden-on-mobile' : ''}`}>
+                    {activeClient && (
+                        <div className="feedback-chat-mobile-back" style={{ display: 'none', marginBottom: '0.75rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setMobileTab('list')}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.8rem',
+                                    borderRadius: '8px',
+                                    background: 'var(--color-bg-secondary, #181b20)',
+                                    border: '1px solid var(--color-border, #282c34)',
+                                    color: '#cbd5e1',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <FiArrowLeft /> Ver lista de atletas ({filteredConversations.length})
+                            </button>
+                        </div>
+                    )}
                     {activeClient ? (
                         <FeedbackThread
                             key={`chat-1on1-${activeClient.id}`}
@@ -395,15 +447,18 @@ function FeedbackChat() {
 
                 {/* COLUMNA 3: Ficha Rápida Personalizada del Cliente */}
                 {activeClient && (
-                    <aside style={{
-                        background: 'var(--color-bg-secondary, #181b20)',
-                        border: '1px solid var(--color-border, #282c34)',
-                        borderRadius: '16px',
-                        padding: '1.15rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1rem',
-                    }}>
+                    <aside
+                        className={`feedback-chat-col feedback-chat-aside-info ${mobileTab !== 'info' ? 'hidden-on-mobile' : ''}`}
+                        style={{
+                            background: 'var(--color-bg-secondary, #181b20)',
+                            border: '1px solid var(--color-border, #282c34)',
+                            borderRadius: '16px',
+                            padding: '1.15rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem',
+                        }}
+                    >
                         <div>
                             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                                 <FiUser style={{ color: 'var(--color-primary, #e63946)' }} />

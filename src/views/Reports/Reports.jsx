@@ -246,7 +246,7 @@ function Reports() {
                                 </span>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
                                 {[
                                     { group: 'Pecho / Pectoral', sets: 14, optimal: '12 - 20 series', pct: 70, color: '#e63946' },
                                     { group: 'Espalda / Dorsal', sets: 16, optimal: '14 - 22 series', pct: 72, color: '#3b82f6' },

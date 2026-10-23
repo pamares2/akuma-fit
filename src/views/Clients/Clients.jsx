@@ -150,7 +150,7 @@ export default function Clients() {
                         Supervisa el progreso, el feedback, las valoraciones y la asignación de planes de tus atletas.
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="clients-header-actions">
                     {clients && clients.length > 0 && (
                         <button
                             type="button"
@@ -360,7 +360,7 @@ export default function Clients() {
                     )}
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                <div className="clients-grid">
                     {filteredClients.map((client) => {
                         const routineCount = client.routines.length;
                         const mealPlanCount = client.mealPlans.length;
@@ -496,13 +496,7 @@ export default function Clients() {
                                 </div>
 
                                 {/* Acciones Rápidas */}
-                                <div style={{
-                                    borderTop: '1px solid var(--color-border, #282c34)',
-                                    paddingTop: '0.75rem',
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fit, minmax(78px, 1fr))',
-                                    gap: '0.4rem',
-                                }}>
+                                <div className="client-card-actions">
                                     {client.hasAssessment && (
                                         <button
                                             onClick={() => handleViewAssessment(client)}
