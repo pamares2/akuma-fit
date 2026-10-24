@@ -688,8 +688,21 @@ export default function Clients() {
                             clientName={selectedFeedbackClient.fullName}
                             viewerRole="coach"
                         />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <button
+                                type="button"
+                                onClick={() => {
+                                    const id = selectedFeedbackClient.id;
+                                    setSelectedFeedbackClient(null);
+                                    navigate(`/app/feedback?clientId=${id}`);
+                                }}
+                                className="btn-primary"
+                                style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                            >
+                                <FiMessageSquare /> Abrir en bandeja completa
+                            </button>
+                            <button
+                                type="button"
                                 onClick={() => setSelectedFeedbackClient(null)}
                                 className="btn-secondary"
                                 style={{ padding: '0.5rem 1.25rem' }}
